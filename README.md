@@ -1,5 +1,5 @@
 <<<<<<< HEAD
-ESLR implementation and the reamed file is yet to create
+ESLR implementation and the readme file is yet to create
 =======
 
 # ESLR
