@@ -120,9 +120,8 @@ namespace ns3 {
     NS_ASSERT_MSG (rProto, "Ipv4 routing not installed on node");
     Ptr<eslr::EslrRoutingProtocol> Eslr = DynamicCast<eslr::EslrRoutingProtocol> (rProto);
     if (Eslr)
-    {
-      // To do: Implement the Default route method in the eslr-main
-      //Eslr->AddDefaultRouteTo (nextHop, interface);
+    {      
+      Eslr->AddDefaultRouteTo (nextHop, interface);
     }
       // ESLR may also be in a list
     Ptr<Ipv4ListRouting> routeList = DynamicCast<Ipv4ListRouting> (rProto);
@@ -137,8 +136,7 @@ namespace ns3 {
         listEslr = DynamicCast<eslr::EslrRoutingProtocol> (listIpv4Proto);
         if (listEslr)
         {
-          // To do: Implement the Default route method in the eslr-main
-          //Eslr->AddDefaultRouteTo (nextHop, interface);
+          Eslr->AddDefaultRouteTo (nextHop, interface);
           break;
         }
       }
@@ -163,5 +161,5 @@ namespace ns3 {
       }
   }
 
-}// end of namespave ns3
+}// end of namespace ns3
 

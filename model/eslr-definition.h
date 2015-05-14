@@ -37,9 +37,9 @@ namespace eslr {
  * Authentication types that are used in route management
  */
   enum AuthType {
-    PLAIN_TEXT = 0x01, // AUTHENTICATION DATA IS SEND as PLAINTEXT
-    MD5 = 0x02, // AUTHENTICATION DATA USED as MD5 HASH
-    SHA = 0x03, // AUTHENTICATION DATA USED as SHA HASH
+    PLAIN_TEXT = 0x01, //!< AUTHENTICATION DATA IS SEND as PLAINTEXT
+    MD5 = 0x02, //!< AUTHENTICATION DATA USED as MD5 HASH
+    SHA = 0x03, //!< AUTHENTICATION DATA USED as SHA HASH
   };
 
 /**
@@ -90,7 +90,8 @@ enum Validity
 {
   INVALID = 0x00, //!< Invalid Neighbor or Route Tecord
   VALID = 0x01, //!< Valid Neighbor or Route Record
-  LHOST = 0x02, //!< Host route for the loopback interface. This is not used for route advertisements
+  DISCONECTED = 0x02, //!< Disconnected Route Record
+  LHOST = 0x03, //!< Host route for the loopback interface. This is not used for route advertisements
 };
 
 /**
@@ -121,6 +122,24 @@ enum InvalidateType
 {
   EXPIRE = 0x01, //!< Invaludate a route due to expiration of the route
   BROKEN = 0x02, //!< Invaludate a route due to broken link, broken route, or shutdown interface
+};
+
+/**
+ * Split Horizon strategy type.
+ */
+enum SplitHorizonType {
+  NO_SPLIT_HORIZON,//!< No Split Horizon
+  SPLIT_HORIZON,   //!< Split Horizon
+};
+
+/**
+ * Printing Options.
+ */
+enum PrintingOption {
+  DONT_PRINT, //!< Do not print any table (Default state)
+  MAIN_R_TABLE, //!< Print the main routing table
+  BACKUP_R_TABLE, //!< Print the backup routing table
+  N_TABLE, //!< Print the neighbor table
 };
 
 } // end of eslr namespace

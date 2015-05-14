@@ -107,11 +107,11 @@ NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
   			              MakeTimeAccessor (&EslrRoutingProtocol::m_periodicUpdateDelay),
   			              MakeTimeChecker ())
       .AddAttribute ( "PrintingMethod", "Specify which table has to be print.",
-                      EnumValue (eslr::MAIN_R_TABLE),
+                      EnumValue (DONT_PRINT),
                       MakeEnumAccessor (&EslrRoutingProtocol::m_print),
-                      MakeEnumChecker ( eslr::MAIN_R_TABLE, "MainRoutingTable",
-                                        eslr::N_TABLE, "NeighborTable",
-                                        eslr::BACKUP_R_TABLE, "BackupRoutingTable"))
+                      MakeEnumChecker ( MAIN_R_TABLE, "MainRoutingTable",
+                                        N_TABLE, "NeighborTable",
+                                        BACKUP_R_TABLE, "BackupRoutingTable"))
     ;
     return tid;
   }
@@ -274,8 +274,9 @@ NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
       }    
     }
 
+    // if protocol is not started yet, socket list will be created and modified later
     if (!m_initialized)
-      return; // if protocol is not started yet, socket list will be created and modified later
+      return; 
 
     bool foundSendSocket = false;
     for (SocketListI iter = m_sendSocketList.begin (); iter != m_sendSocketList.end (); iter++ )
@@ -715,7 +716,7 @@ NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
 		}		
     
     // Reschedule next KAM
-		Time sendKam = Seconds (m_rng->GetValue (0, 0.05*m_kamTimer.GetSeconds ()));
+		Time sendKam = Seconds (m_rng->GetValue (0, 0.5*m_kamTimer.GetSeconds ()));
     m_nextKeepAliveMessage = Simulator::Schedule (sendKam, &EslrRoutingProtocol::sendKams, this);
   }
 
@@ -802,7 +803,7 @@ NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
                               eslr::MAIN, 
                               m_routeTimeoutDelay, 
                               m_garbageCollectionDelay, 
-                              Seconds ()); 
+                              Seconds (0)); 
           AddNetworkRouteTo ( it->GetDestAddress (), 
                               it->GetDestMask (), 
                               senderAddress, 
@@ -949,6 +950,14 @@ NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
 
     m_interfaceExclusions = exceptions;    
   }
+  
+  void 
+  EslrRoutingProtocol::AddDefaultRouteTo (Ipv4Address nextHop, uint32_t interface)
+  {
+    NS_LOG_FUNCTION (this << nextHop << interface);
+      
+    AddNetworkRouteTo (Ipv4Address ("0.0.0.0"), Ipv4Mask::GetZero (), nextHop, interface, 0, 0, eslr::PRIMARY,  eslr::MAIN, Seconds (0), Seconds (0), Seconds (0));
+  }
 
   Ptr<Socket> 
   EslrRoutingProtocol::GetSocketForInterface (uint32_t interface)
@@ -1092,7 +1101,6 @@ NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
     else if (updateType == eslr::TRIGGERED)  
     {
       NS_LOG_LOGIC (this << "Triggered Update");
-      std::cout << int (m_ipv4->GetObject<Node> ()->GetId ()) << " Triggered Update" << std::endl;
     }
 
     // acquiring an instance of the neighbor table
@@ -1131,6 +1139,13 @@ NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
         hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
         hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr
 
+//        for (rtIter = tempMainTable.begin (); rtIter != tempMainTable.end (); rtIter++)
+//        {
+//          if (m_ipv4->GetObject<Node> ()->GetId () == 5)
+//          {
+//            std::cout << rtIter->first->GetDestNetwork () << " " <<rtIter->first->GetSequenceNo () << std::endl;
+//          }
+//        }
         for (rtIter = tempMainTable.begin (); rtIter != tempMainTable.end (); rtIter++)
         {
           bool splitHorizoning = (rtIter->first->GetInterface () == interface);
@@ -1148,7 +1163,7 @@ NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
 
             if (rtIter->first->GetValidity () == eslr::VALID)
               rum.SetSequenceNo (rtIter->first->GetSequenceNo () + 2);
-            else
+            else if (rtIter->first->GetValidity () == eslr::INVALID)
               rum.SetSequenceNo (rtIter->first->GetSequenceNo () + 1);
 
             rum.SetMatric (rtIter->first->GetMetric ());
@@ -1178,19 +1193,10 @@ NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
         }
       }
     }
-    for (rtIter = tempMainTable.begin (); rtIter != tempMainTable.end (); rtIter++)
-    {
-      if (rtIter->first->GetGateway () == Ipv4Address::GetZero ())
-      {
-        NS_LOG_LOGIC (this << "Route is about my local interfaces. Update the Sequence#");
-        
-        rtIter->first->SetSequenceNo (rtIter->first->GetSequenceNo () + 2);
-        rtIter->first->SetRouteChanged (false);
-        m_routing.UpdateNetworkRoute (rtIter->first, m_routeTimeoutDelay, m_garbageCollectionDelay, m_routeSettlingDelay, eslr::MAIN);
-      }
-      
-      rtIter->first->SetRouteChanged (false);
-    }
+    m_routing.ToggleRouteChanged ();
+    m_routing.IncrementSeqNo ();
+    
+    tempMainTable.clear ();
   }
 
   void 
@@ -1213,10 +1219,10 @@ NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
     // Note:  This part id directly inherited from the RFC 2080
     //        After a triggered update is sent, a timer is set between 1s to 5s. 
     //        between that time, any other triggered updates are not sent. 
-    //        In addition, triggered updates are omited if there is a scheduled periodic update.
-    //        Furhtermore, only changed routes will be sent. 
-    //        Rest of the reoutes are not considered as a RUM for the update message. 
-    //        Thus, aftersending either triggered or periodic update, the changed flag will be set to false 
+    //        In addition, triggered updates are omitted if there is a scheduled periodic update.
+    //        Furthermore, only changed routes will be sent. 
+    //        Rest of the routes are not considered as a RUM for the update message. 
+    //        Thus, after sending either triggered or periodic update, the changed flag will be set to false 
 
     Time delay = Seconds (m_rng->GetValue (m_minTriggeredCooldownDelay.GetSeconds (), m_maxTriggeredCooldownDelay.GetSeconds ()));
     m_nextTriggeredUpdate = Simulator::Schedule (delay, &EslrRoutingProtocol::DoSendRouteUpdate, this, eslr::TRIGGERED);
@@ -1232,7 +1238,7 @@ NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
 
     DoSendRouteUpdate (eslr::PERIODIC);
 
-    Time delay = m_periodicUpdateDelay + Seconds (m_rng->GetValue (0, 0.05*m_periodicUpdateDelay.GetSeconds ()));
+    Time delay = m_periodicUpdateDelay + Seconds (m_rng->GetValue (0, 0.5*m_periodicUpdateDelay.GetSeconds ()));
     m_nextPeriodicUpdate = Simulator::Schedule (delay, &EslrRoutingProtocol::SendPeriodicUpdate, this);
   }
 

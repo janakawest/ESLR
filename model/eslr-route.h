@@ -441,8 +441,15 @@ public:
   bool IsEmpty(eslr::Table table);
 
   /**
-  * \brief clear the neighbor table
+  * \brief increment the sequence number of locally connected routes
   */
+  void IncrementSeqNo ();
+  
+  /**
+  * \brief toggle changed flag of all routes
+  */
+  void ToggleRouteChanged ();
+
 	void DoDispose ()
 	{
 		m_mainRoutingTable.clear ();

@@ -449,14 +449,10 @@ public:
     m_backupRoutingTable.clear ();
 	}
 
-  int64_t
-  AssignStreams (int64_t stream)
-  {
-    NS_LOG_FUNCTION (this << stream);
-
-    m_rng->SetStream (stream);
-    return 1;
-  }
+  /**
+  * \brief assign a stream to Uniform Random Variable
+  */
+  void AssignStream (int64_t stream);
 
 private:
   RoutingTableInstance m_mainRoutingTable; //!< Instance of the Main Routing Table

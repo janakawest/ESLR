@@ -39,7 +39,8 @@ namespace eslr {
  * Routing Table Entry
 */
 
-  RoutingTableEntry::RoutingTableEntry () : m_sequenceNo (0),
+  RoutingTableEntry::RoutingTableEntry (void) : Ipv4RoutingTableEntry (RoutingTableEntry::CreateNetworkRouteTo
+(Ipv4Address (), Ipv4Mask (), Ipv4Address (), 0)), m_sequenceNo (0),
                                               m_metric (0),
                                               m_changed (false),
                                               m_validity (eslr::INVALID),
@@ -145,7 +146,7 @@ namespace eslr {
         p.invalidateType = eslr::EXPIRE;
         p.table = eslr::MAIN;
 
-        Time delay = invalidateTime + Seconds (m_rng->GetValue (0, 10));
+        Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 10.0));
         EventId invalidateEvent = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, route1, p);
         m_mainRoutingTable.push_front (std::make_pair (route1, invalidateEvent));
     }
@@ -164,7 +165,8 @@ namespace eslr {
         route2->SetMetric (routingTableEntry->GetMetric ());
         route2->SetRouteChanged (true); 
 
-        EventId moveToMainEvent = Simulator::Schedule (settlingTime, &RoutingTable::MoveToMain, this, route2, invalidateTime, deleteTime, settlingTime);
+        Time delay = settlingTime + Seconds (m_rng->GetValue (0.0, 5.0));
+        EventId moveToMainEvent = Simulator::Schedule (delay, &RoutingTable::MoveToMain, this, route2, invalidateTime, deleteTime, settlingTime);
         m_backupRoutingTable.push_front (std::make_pair (route2, moveToMainEvent));
       }
       else if (settlingTime.GetSeconds () == 0)
@@ -191,12 +193,13 @@ namespace eslr {
 
         if (routingTableEntry->GetRouteType () == eslr::PRIMARY)
         {
-          //Time delay = invalidateTime + Seconds (m_rng->GetValue (0, 20));
-          invalidateEvent = E
+          //Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 20.0));
+          invalidateEvent = EventId ();
         }
         else
         {
-           = Simulator::Schedule (invalidateTime, &RoutingTable::InvalidateRoute, this, route3, p);
+          Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 10.0));        
+          invalidateEvent = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, route3, p);
         }
         m_backupRoutingTable.push_front (std::make_pair (route3, invalidateEvent));
       }
@@ -261,7 +264,8 @@ namespace eslr {
         p.invalidateType = eslr::EXPIRE;
         p.table = eslr::BACKUP;
 
-        it->second = Simulator::Schedule (invalidateTime, &RoutingTable::InvalidateRoute, this, it->first, p);
+        Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 10.0));
+        it->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, it->first, p);
       }    
     } 
   }
@@ -308,7 +312,8 @@ namespace eslr {
         p.invalidateType = eslr::EXPIRE;
         p.table = eslr::MAIN;
 
-        EventId invalidateEvent = Simulator::Schedule (invalidateTime, &RoutingTable::InvalidateRoute, this, route2, p);
+        Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 10.0));
+        EventId invalidateEvent = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, route2, p);
 
         m_mainRoutingTable.push_back (std::make_pair (routingTableEntry,invalidateEvent));
       }
@@ -327,7 +332,8 @@ namespace eslr {
         route4->SetMetric (routingTableEntry->GetMetric ());
         route4->SetRouteChanged (true); 
 
-        EventId moveToMainEvent = Simulator::Schedule (settlingTime, &RoutingTable::MoveToMain, this, route4, invalidateTime, deleteTime, settlingTime);
+        Time delay = settlingTime + Seconds (m_rng->GetValue (0.0, 5.0));
+        EventId moveToMainEvent = Simulator::Schedule (delay, &RoutingTable::MoveToMain, this, route4, invalidateTime, deleteTime, settlingTime);
 
         m_backupRoutingTable.push_front (std::make_pair (routingTableEntry,moveToMainEvent));
       }
@@ -350,7 +356,8 @@ namespace eslr {
         p.invalidateType = eslr::EXPIRE;
         p.table = eslr::BACKUP;
 
-        EventId invalidateEvent = Simulator::Schedule (invalidateTime, &RoutingTable::InvalidateRoute, this, route3, p);
+        Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 10.0));
+        EventId invalidateEvent = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, route3, p);
 
         m_backupRoutingTable.push_front (std::make_pair (routingTableEntry,invalidateEvent));
       }
@@ -449,7 +456,7 @@ namespace eslr {
           primaryRoute->second.Cancel ();
           m_backupRoutingTable.erase (primaryRoute);
 
-          Time delay = Seconds (m_rng->GetValue (0, 3));
+          Time delay = Seconds (m_rng->GetValue (0.0, 5.0));
           //UpdateNetworkRoute (route, param.invalidateTime, param.deleteTime, delay, eslr::BACKUP); 
           AddRoute (route, param.invalidateTime, param.deleteTime, delay, eslr::BACKUP);
         
@@ -469,7 +476,7 @@ namespace eslr {
           route->SetMetric (primaryRoute->first->GetMetric ());
           route->SetRouteChanged (true);
 
-          Time delay = Seconds (m_rng->GetValue (0, 3));
+          Time delay = Seconds (m_rng->GetValue (0.0, 5.0));
           UpdateNetworkRoute (route, param.invalidateTime, param.deleteTime, delay, eslr::BACKUP);             
         }                
         else if (mainRoute->first->GetMetric () < primaryRoute->first->GetMetric ())
@@ -500,7 +507,7 @@ namespace eslr {
             primaryRoute->second.Cancel ();
             m_backupRoutingTable.erase (primaryRoute);
 
-            Time delay = Seconds (m_rng->GetValue (0, 3));
+            Time delay = Seconds (m_rng->GetValue (0.0, 5.0));
             //UpdateNetworkRoute (route, param.invalidateTime, param.deleteTime, delay, eslr::BACKUP); 
             AddRoute (route, param.invalidateTime, param.deleteTime, delay, eslr::BACKUP);
           }
@@ -518,10 +525,12 @@ namespace eslr {
 
             //if (primaryRoute->second.IsRunning ())
               primaryRoute->second.Cancel ();     
-   
-            mainRoute->second = Simulator::Schedule (param.deleteTime, &RoutingTable::DeleteRoute, this, mainRoute->first, eslr::MAIN);
 
-            primaryRoute->second = Simulator::Schedule (param.deleteTime, &RoutingTable::DeleteRoute, this, primaryRoute->first, eslr::BACKUP);
+            Time delay = param.deleteTime + Seconds (m_rng->GetValue (0.0, 5.0));
+           
+            mainRoute->second = Simulator::Schedule (delay, &RoutingTable::DeleteRoute, this, mainRoute->first, eslr::MAIN);
+
+            primaryRoute->second = Simulator::Schedule (delay, &RoutingTable::DeleteRoute, this, primaryRoute->first, eslr::BACKUP);
           }             
           return (retVal = true);
         }
@@ -555,7 +564,7 @@ namespace eslr {
           primaryRoute->second.Cancel ();
           m_backupRoutingTable.erase (primaryRoute);
 
-          Time delay = Seconds (m_rng->GetValue (0, 3));
+          Time delay = Seconds (m_rng->GetValue (0.0, 5.0));
           //UpdateNetworkRoute (route, param.invalidateTime, param.deleteTime, delay, eslr::BACKUP); 
           AddRoute (route, param.invalidateTime, param.deleteTime, delay, eslr::BACKUP);
         }
@@ -570,7 +579,8 @@ namespace eslr {
             //if (mainRoute->second.IsRunning ())
               mainRoute->second.Cancel ();
 
-            mainRoute->second = Simulator::Schedule (param.deleteTime, &RoutingTable::DeleteRoute, this, mainRoute->first, eslr::MAIN); 
+            Time delay = param.deleteTime + Seconds (m_rng->GetValue (0.0, 5.0));
+            mainRoute->second = Simulator::Schedule (delay, &RoutingTable::DeleteRoute, this, mainRoute->first, eslr::MAIN); 
           }
           if (foundPrimaryRoute)
           {          
@@ -579,8 +589,9 @@ namespace eslr {
 
             //if (primaryRoute->second.IsRunning ())
               primaryRoute->second.Cancel ();
-
-            primaryRoute->second = Simulator::Schedule (param.deleteTime, &RoutingTable::DeleteRoute, this, primaryRoute->first, eslr::BACKUP);
+              
+            Time delay = param.deleteTime + Seconds (m_rng->GetValue (0.0, 5.0));
+            primaryRoute->second = Simulator::Schedule (delay, &RoutingTable::DeleteRoute, this, primaryRoute->first, eslr::BACKUP);
           }
         }
         return (retVal = true);
@@ -629,7 +640,7 @@ namespace eslr {
             primaryRoute->second.Cancel ();
             m_backupRoutingTable.erase (primaryRoute);
 
-            Time delay = Seconds (m_rng->GetValue (0, 3));
+            Time delay = Seconds (m_rng->GetValue (0.0, 5.0));
             //UpdateNetworkRoute (route, param.invalidateTime, param.deleteTime, delay, eslr::BACKUP); 
             AddRoute (route, param.invalidateTime, param.deleteTime, delay, eslr::BACKUP);
           }
@@ -640,8 +651,9 @@ namespace eslr {
 
             //if (bkupRoute->second.IsRunning ())
               bkupRoute->second.Cancel (); 
-           
-            bkupRoute->second = Simulator::Schedule (param.deleteTime, &RoutingTable::DeleteRoute, this, bkupRoute->first, eslr::BACKUP);            
+              
+            Time delay = param.deleteTime + Seconds (m_rng->GetValue (0.0, 5.0));           
+            bkupRoute->second = Simulator::Schedule (delay, &RoutingTable::DeleteRoute, this, bkupRoute->first, eslr::BACKUP);            
           }
         }
         else if (bkupRoute->first->GetRouteType () == eslr::PRIMARY)
@@ -938,8 +950,9 @@ namespace eslr {
         p.settlingTime = settlingTime;
         p.invalidateType = eslr::EXPIRE;
         p.table = eslr::MAIN;     
-          
-        mainRoute->second = Simulator::Schedule (invalidateTime, &RoutingTable::InvalidateRoute, this, mainRoute->first, p);
+
+        Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 10.0));          
+        mainRoute->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, mainRoute->first, p);
 
         delete primaryRoute->first;
         primaryRoute->first = mainRoute->first;
@@ -998,7 +1011,8 @@ namespace eslr {
           //if (primaryRoute->second.IsRunning ())
             primaryRoute->second.Cancel ();  
 
-          primaryRoute->second = Simulator::Schedule (settlingTime, &RoutingTable::MoveToMain, this, primaryRoute->first, invalidateTime, deleteTime, settlingTime);
+          Time delay = settlingTime + Seconds (m_rng->GetValue (0.0, 5.0));          
+          primaryRoute->second = Simulator::Schedule (delay, &RoutingTable::MoveToMain, this, primaryRoute->first, invalidateTime, deleteTime, settlingTime);
 
             retVal = true; 
         }
@@ -1030,7 +1044,8 @@ namespace eslr {
           p.invalidateType = eslr::EXPIRE;
           p.table = eslr::BACKUP;      
 
-          secondaryRoute->second = Simulator::Schedule (invalidateTime, &RoutingTable::InvalidateRoute, this, secondaryRoute->first, p);     
+          Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 10.0));          
+          secondaryRoute->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, secondaryRoute->first, p);     
             
           retVal = true;            
         }
@@ -1046,16 +1061,30 @@ namespace eslr {
   {
     if (table == eslr::MAIN)
     {
+      // Note: In the case of Main routing table, at the time returning the routing table, 
+      // a newly created separate instance is returned. Note that, in order to manage memory properly, 
+      // table instance has to be cleared at the place requesting the entire main routing table.
+      
+      RoutingTableEntry* route;
       for (RoutesI it = m_mainRoutingTable.begin ();  it!= m_mainRoutingTable.end (); it++)
       {
-        instance.push_front(std::make_pair (it->first,it->second));
+        route  =  new RoutingTableEntry (it->first->GetDestNetwork (), it->first->GetDestNetworkMask (), it->first->GetGateway (), it->first->GetInterface ());    
+          route->SetValidity (it->first->GetValidity ());
+          route->SetSequenceNo (it->first->GetSequenceNo ());
+          route->SetRouteType (it->first->GetRouteType ());
+          route->SetMetric (it->first->GetMetric ());
+          route->SetRouteChanged (it->first->GetRouteChanged ());
+          
+        //instance.push_front(std::make_pair (it->first, it->second));
+        instance.push_front(std::make_pair (route, EventId ()));
       }
+      delete route;
     }
     else if (table == eslr::BACKUP)
-    {
+    { 
       for (RoutesI it = m_backupRoutingTable.begin ();  it!= m_backupRoutingTable.end (); it++)
-      {
-        instance.push_front(std::make_pair (it->first,it->second));
+      {    
+        instance.push_front(std::make_pair (it->first, it->second));
       }
     }
     else // invalid routing table type
@@ -1153,7 +1182,7 @@ namespace eslr {
     {
       for (RoutesI it = routesInMain.begin ();  it!= routesInMain.end (); it++)
       {
-       if (it->second.IsRunning ())
+       //if (it->second.IsRunning ())
         it->second.Cancel ();
 
         invalidateParams  p;
@@ -1163,7 +1192,7 @@ namespace eslr {
         p.invalidateType = eslr::BROKEN;
         p.table = eslr::MAIN;     
 
-        Time delay = Seconds (invalidateTime.GetSeconds () / 10) + Seconds (m_rng->GetValue (0, 15));
+        Time delay = Seconds (invalidateTime.GetSeconds () / 10) + Seconds (m_rng->GetValue (0.0, 15.0));
         it->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, it->first, p);
       }
     }
@@ -1171,7 +1200,7 @@ namespace eslr {
     {
       for (RoutesI it = routesInBackup.begin ();  it!= routesInBackup.end (); it++)
       {
-       if (it->second.IsRunning ())
+       //if (it->second.IsRunning ())
         it->second.Cancel ();
 
         invalidateParams  p;
@@ -1181,7 +1210,7 @@ namespace eslr {
         p.invalidateType = eslr::BROKEN;
         p.table = eslr::BACKUP;     
 
-        Time delay = Seconds (invalidateTime.GetSeconds () / 10) + Seconds (m_rng->GetValue (0, 15));
+        Time delay = Seconds (invalidateTime.GetSeconds () / 10) + Seconds (m_rng->GetValue (0.0, 15.0));
        it->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, it->first, p);
       }
     }
@@ -1200,7 +1229,7 @@ namespace eslr {
     {
       for (RoutesI it = routesInMain.begin ();  it!= routesInMain.end (); it++)
       {
-       if (it->second.IsRunning ())
+       //if (it->second.IsRunning ())
         it->second.Cancel ();
 
         invalidateParams  p;
@@ -1210,7 +1239,7 @@ namespace eslr {
         p.invalidateType = eslr::BROKEN;
         p.table = eslr::MAIN;    
 
-        Time delay = Seconds (invalidateTime.GetSeconds () / 10) + Seconds (m_rng->GetValue (0, 15));
+        Time delay = Seconds (invalidateTime.GetSeconds () / 10) + Seconds (m_rng->GetValue (0.0, 15.0));
         it->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, it->first, p);
       }
     }
@@ -1218,7 +1247,7 @@ namespace eslr {
     {
       for (RoutesI it = routesInBackup.begin ();  it!= routesInBackup.end (); it++)
       {
-       if (it->second.IsRunning ())
+       //if (it->second.IsRunning ())
         it->second.Cancel ();
 
         invalidateParams  p;
@@ -1228,7 +1257,7 @@ namespace eslr {
         p.invalidateType = eslr::BROKEN;
         p.table = eslr::BACKUP;   
 
-        Time delay = Seconds (invalidateTime.GetSeconds () / 10) + Seconds (m_rng->GetValue (0, 15));
+        Time delay = Seconds (invalidateTime.GetSeconds () / 10) + Seconds (m_rng->GetValue (0.0, 15.0));
         it->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, it->first, p);
       }
     }
@@ -1243,7 +1272,7 @@ namespace eslr {
 
     if (found)
     {
-      if (foundRoute->second.IsRunning ())
+      //if (foundRoute->second.IsRunning ())
         foundRoute->second.Cancel ();
 
         invalidateParams  p;
@@ -1253,11 +1282,33 @@ namespace eslr {
         p.invalidateType = eslr::BROKEN;
         p.table = table;   
 
-        Time delay = Seconds (invalidateTime.GetSeconds () / 10) + Seconds (m_rng->GetValue (0, 15));
+        Time delay = Seconds (invalidateTime.GetSeconds () / 10) + Seconds (m_rng->GetValue (0.0, 15.0));
         foundRoute->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, foundRoute->first, p); 
       retVal = true;   
     }
     return retVal;
+  }
+  
+  void 
+  RoutingTable::ToggleRouteChanged ()
+  {
+    for (RoutesI it = m_mainRoutingTable.begin ();  it!= m_mainRoutingTable.end (); it++)
+    {
+      it->first->SetRouteChanged (false);
+    }
+  }
+  
+  void 
+  RoutingTable::IncrementSeqNo ()
+  {
+    for (RoutesI it = m_mainRoutingTable.begin ();  it!= m_mainRoutingTable.end (); it++)
+    {
+      if ((it->first->GetDestNetwork () != "127.0.0.1") && (it->first->GetGateway () == Ipv4Address::GetZero ()))
+      {        
+        it->first->SetSequenceNo (it->first->GetSequenceNo () + 2);
+        it->first->SetRouteChanged (false);
+      }
+    }
   }
 
   void 

@@ -45,23 +45,6 @@
 namespace ns3 {
 namespace eslr {
 
-/**
- * Split Horizon strategy type.
- */
-enum SplitHorizonType {
-  NO_SPLIT_HORIZON,//!< No Split Horizon
-  SPLIT_HORIZON,   //!< Split Horizon
-};
-
-/**
- * Printing Options.
- */
-enum PrintingOption {
-  MAIN_R_TABLE, //!< Print the main routing table
-  BACKUP_R_TABLE, //!< Print the backup routing table
-  N_TABLE, //!< Print the neighbor table
-};
-
 class EslrRoutingProtocol : public Ipv4RoutingProtocol
 {
 public:
@@ -121,7 +104,7 @@ public:
    * \param nextHop the next hop
    * \param interface the interface
    */
-  //void AddDefaultRouteTo (Ipv4Address nextHop, uint32_t interface);
+  void AddDefaultRouteTo (Ipv4Address nextHop, uint32_t interface);
 
 protected:
   /**
@@ -200,7 +183,7 @@ private:
    * \param networkMask network prefix
    * \param nextHop next hop address to route the packet.
    * \param interface interface index
-   * \param metric the cumilative propagation time to the destination network
+   * \param metric the cumulative propagation time to the destination network
    * \param sequenceNo sequence number of the received route
    * \param routeType is Route is Primary or Secondary
    * \param table where to add
@@ -222,7 +205,7 @@ private:
    * \param table where to add
    * \param timeoutTime time that the route is going to expire
    * \param grabageCollectionTime, time that the route is removed from the table
-   * \param settlingTime time that a route has to waid before it is stated as valid route
+   * \param settlingTime time that a route has to wait before it is stated as valid route
    */
   void AddNetworkRouteTo (Ipv4Address network, Ipv4Mask networkMask, uint32_t interface, uint16_t metric, uint16_t sequenceNo, eslr::RouteType routeType, eslr::Table table, Time timeoutTime, Time garbageCollectionTime, Time settlingTime);
 
@@ -289,8 +272,8 @@ private:
 // \name For prtocol management
 // \{
 // note: Since the result of socket->GetBoundNetDevice ()->GetIfIndex () is ambiguity and 
-// it is dependent on the interface initialization (i.e., if the loopback is already up) the socket
-// list is used inthis implementation. Sockets are then added to the relavent neighber in the 
+// it is dependent on the interface initialization (i.e., if the loop-back is already up) the socket
+// list is used inthis implementation. Sockets are then added to the relevant neighbor in the 
 // neighbor table.
   /// Socket list type
   typedef std::map< Ptr<Socket>, uint32_t> SocketList;
@@ -312,7 +295,7 @@ private:
 
   Ptr<UniformRandomVariable> m_rng; //!< Rng stream.
 
-  Time m_startupDelay; //!< Random delay before protocol startup.
+  Time m_startupDelay; //!< Random delay before protocol start-up.
 
   EventId m_nextPeriodicUpdate; //!< Next periodic update event
   EventId m_nextTriggeredUpdate; //!< Next triggered update event
@@ -333,9 +316,9 @@ private:
 // \{
   RoutingTable m_routing; //!< the routing table instances (Main and Backup)
   Time m_routeTimeoutDelay; //!< Delay that determines the route is UNRESPONSIVE
-  Time m_routeSettlingDelay; //!< Delay that determins a particular route is stable
-  Time m_minTriggeredCooldownDelay; //!< minimum cooldown delay between two triggered updates
-  Time m_maxTriggeredCooldownDelay; //!< maximum cooldown delay between two triggered updates
+  Time m_routeSettlingDelay; //!< Delay that determines a particular route is stable
+  Time m_minTriggeredCooldownDelay; //!< minimum cool-down delay between two triggered updates
+  Time m_maxTriggeredCooldownDelay; //!< maximum cool-down delay between two triggered updates
   Time m_periodicUpdateDelay; //!< delay between two periodic updates
 
   int64_t m_stream;

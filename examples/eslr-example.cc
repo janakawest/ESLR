@@ -178,10 +178,10 @@ main (int argc, char *argv[])
   Ipv4InterfaceContainer iic7 = ipv4.Assign (ndc7);
 
       EslrHelper routingHelper;
-				
       Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> (&std::cout);
 
-      routingHelper.PrintRoutingTableEvery (Seconds (30), a, routingStream);
+      if (MTable || NTable || BTable)
+        routingHelper.PrintRoutingTableEvery (Seconds (30), d, routingStream);
 
 //      Simulator::Schedule (Seconds (40), &MakeLinkDown, b, d, 3, 2); 
 //      Simulator::Schedule (Seconds (185), &MakeLinkUp, b, d, 3, 2); 
