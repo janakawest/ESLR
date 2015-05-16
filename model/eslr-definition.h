@@ -90,7 +90,7 @@ enum Validity
 {
   INVALID = 0x00, //!< Invalid Neighbor or Route Tecord
   VALID = 0x01, //!< Valid Neighbor or Route Record
-  DISCONECTED = 0x02, //!< Disconnected Route Record
+  DISCONNECTED = 0x02, //!< Disconnected Route Record
   LHOST = 0x03, //!< Host route for the loopback interface. This is not used for route advertisements
 };
 
