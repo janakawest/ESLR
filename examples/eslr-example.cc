@@ -181,7 +181,7 @@ main (int argc, char *argv[])
       Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> (&std::cout);
 
       if (MTable || NTable || BTable)
-        routingHelper.PrintRoutingTableEvery (Seconds (30), d, routingStream);
+        routingHelper.PrintRoutingTableEvery (Seconds (30), b, routingStream);
 
       Simulator::Schedule (Seconds (400), &MakeLinkDown, b, d, 3, 2); 
       Simulator::Schedule (Seconds (1850), &MakeLinkUp, b, d, 3, 2); 

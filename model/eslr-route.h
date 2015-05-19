@@ -33,7 +33,7 @@
 #include "ns3/ipv4-l3-protocol.h"
 #include "ns3/ipv4-routing-table-entry.h"
 
-
+#include "ns3/node.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/udp-socket-factory.h"
 #include "ns3/ipv4.h"
@@ -461,11 +461,24 @@ public:
   */
   void AssignStream (int64_t stream);
 
+	/**
+	 * \brief assign the IPv4 pointer to routing management
+	 * \param ipv4 the IPv4 pointer
+	 */
+	void AssignIpv4(Ptr<Ipv4> ipv4)
+	{
+		m_ipv4 = ipv4;
+		m_nodeId = m_ipv4->GetObject<Node> ()->GetId ();
+	}
+
 private:
   RoutingTableInstance m_mainRoutingTable; //!< Instance of the Main Routing Table
   RoutingTableInstance m_backupRoutingTable; //!< Instance of the Backup Routing Table
 
   Ptr<UniformRandomVariable> m_rng; //!< Rng stream.
+	Ptr<Ipv4> m_ipv4; //!< Ipv4 pointer
+	Ptr<Node> m_node; //!< node the routing protocol is running on 
+	uint32_t m_nodeId; //!< node id
 };// end of RouteTable 
 }// end of namespace eslr
 }// end of namespace ns3

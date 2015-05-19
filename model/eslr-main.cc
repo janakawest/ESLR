@@ -66,15 +66,15 @@ TypeId EslrRoutingProtocol::GetTypeId (void)
     .SetParent<Ipv4RoutingProtocol> ()
     .AddConstructor<EslrRoutingProtocol> ()
     .AddAttribute ( "KeepAliveInterval","The time between two Keep Alive Messages.",
-			              TimeValue (Seconds(30)), /*This has to be adjust according to the user requirment*/
+			              TimeValue (Seconds(30)), /*This has to be adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_kamTimer),
 			              MakeTimeChecker ())
     .AddAttribute ( "NeighborTimeoutDelay","The delay to mark a neighbor as unresponsive.",
-			              TimeValue (Seconds(90)), /*This has to be adjust according to the user requirment*/
+			              TimeValue (Seconds(90)), /*This has to be adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_neighborTimeoutDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "GarbageCollection","The delay to remove unresponsive neighbors from the neighbor table.",
-			              TimeValue (Seconds(20)), /*This has to be adjust according to the user requirment*/
+			              TimeValue (Seconds(20)), /*This has to be adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_garbageCollectionDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "StartupDelay", "Maximum random delay for protocol startup (send route requests).",
@@ -87,23 +87,23 @@ TypeId EslrRoutingProtocol::GetTypeId (void)
                     MakeEnumChecker (NO_SPLIT_HORIZON, "NoSplitHorizon",
                                       SPLIT_HORIZON, "SplitHorizon"))
     .AddAttribute ( "RouteTimeoutDelay","The delay to mark a route is invalidate.",
-			              TimeValue (Seconds(180)), /*This has to be adjust according to the user requirment*/
+			              TimeValue (Seconds(180)), /*This has to be adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_routeTimeoutDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "SettlingTime","The delay that a route record has to keep in the backup table before it is moved to the main table.",
-			              TimeValue (Seconds(60)), /*This has to be adjust according to the user requirment*/
+			              TimeValue (Seconds(60)), /*This has to be adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_routeSettlingDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "MinTriggeredCooldown","Minimum time gap between two triggered updates.",
-			              TimeValue (Seconds(1)), /*This has to be adjust according to the user requirment*/
+			              TimeValue (Seconds(1)), /*This has to be adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_minTriggeredCooldownDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "MaxTriggeredCooldown","Maximum time gap between two triggered updates.",
-			              TimeValue (Seconds(5)), /*This has to be adjust according to the user requirment*/
+			              TimeValue (Seconds(5)), /*This has to be adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_maxTriggeredCooldownDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "PeriodicUpdateInterval","Time between two periodic updates.",
-			              TimeValue (Seconds(30)), /*This has to be adjust according to the user requirment*/
+			              TimeValue (Seconds(30)), /*This has to be adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_periodicUpdateDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "PrintingMethod", "Specify which table has to be print.",
@@ -137,6 +137,7 @@ EslrRoutingProtocol::DoInitialize ()
   m_initialized = true; // Indicate that the routing protocol is initialized
 
   m_routing.AssignStream (m_stream);
+	m_routing.AssignIpv4 (m_ipv4);
 
   // build the socket interface list
   // The interface ID = 0 is not considered in this implementation
@@ -367,6 +368,8 @@ EslrRoutingProtocol::NotifyInterfaceDown (uint32_t interface)
 
   if (m_interfaceExclusions.find (interface) == m_interfaceExclusions.end ())
   {
+    // Forcefully cancel out the triggered update cool-down time.
+      m_nextTriggeredUpdate.Cancel ();
     SendTriggeredRouteUpdate ();
   }
 }
@@ -555,13 +558,13 @@ EslrRoutingProtocol::SendTriggeredRouteUpdate ()
     return;
   }
 
-  // Note:  This part id directly inherited from the RFC 2080
+  // Note:  This part is directly inherited from the RFC 2080
   //        After a triggered update is sent, a timer is set between 1s to 5s. 
   //        between that time, any other triggered updates are not sent. 
   //        In addition, triggered updates are omitted if there is a scheduled periodic update.
-  //        Furthermore, only changed routes will be sent. 
-  //        Rest of the routes are not considered as a RUM for the update message. 
-  //        Thus, after sending either triggered or periodic update, the changed flag will be set to false 
+  //        Furthermore, only changed routes will be sent.
+  //        routes are marked when those get invalidated and disconnected. However, as a persistent protocol,
+  //        ESLR only advertise disconnected routes.
 
   Time delay = Seconds (m_rng->GetValue (m_minTriggeredCooldownDelay.GetSeconds (), m_maxTriggeredCooldownDelay.GetSeconds ()));
   m_nextTriggeredUpdate = Simulator::Schedule (delay, &EslrRoutingProtocol::DoSendRouteUpdate, this, eslr::TRIGGERED);
@@ -637,8 +640,8 @@ EslrRoutingProtocol::DoSendRouteUpdate (eslr::UpdateType updateType)
 
         bool isLocalHost = ((rtIter->first->GetDestNetwork () == "127.0.0.1") && (rtIter->first->GetDestNetworkMask () == Ipv4Mask::GetOnes ()));
 
-        // Note:  all splithorizon routes are omited.
-        //        routes about the local host is omited.
+        // Note:  all split-horizon routes are omitted.
+        //        routes about the local host is omitted.
         //        only changed routes are considered.
         if ((m_splitHorizonStrategy != (SPLIT_HORIZON && splitHorizoning)) && 
             (!isLocalHost) &&
@@ -650,6 +653,8 @@ EslrRoutingProtocol::DoSendRouteUpdate (eslr::UpdateType updateType)
             rum.SetSequenceNo (rtIter->first->GetSequenceNo () + 2);
           else if (rtIter->first->GetValidity () == eslr::DISCONNECTED)
             rum.SetSequenceNo (rtIter->first->GetSequenceNo () + 1);
+          else if (rtIter->first->GetValidity () == eslr::INVALID)
+            continue; // ignore the invalid route. 
 
           rum.SetMatric (rtIter->first->GetMetric ());
           rum.SetDestAddress (rtIter->first->GetDestNetwork ());
@@ -762,7 +767,7 @@ EslrRoutingProtocol::Receive (Ptr<Socket> socket)
     // Route update authentication is not considered.
     // As multicasting route update messages are receiving from non neighbor routers, 
     // it is not possible to use per neighbor authentication. 
-    // Thererore, per neighbor authentication is temporarily disabled.
+    // Therefore, per neighbor authentication is temporarily disabled.
     // Every packet are accepted.
     // However, in this case, we have to consider some method to prevent DDoS attacks 
 
@@ -896,9 +901,9 @@ EslrRoutingProtocol::HandleRouteResponses (ESLRRoutingHeader hdr, Ipv4Address se
       {
         NS_LOG_LOGIC ("Invalidating routes in the main table. Send a Triggered update.");
 
-        // As there are invalidated routes, an immediate triggered update is triggered
-        // Note: However, Triggered updates are frequently called, the compensating time (1-5s)
-        // is affected
+        // As there are disconnected routes, an immediate triggered update is triggered
+        // Note: In fact, as this is an emergency situation, the cooling time (i.e., 1-5s) is ignored
+
         if (m_nextTriggeredUpdate.IsRunning ())
           m_nextTriggeredUpdate.Cancel ();
         SendTriggeredRouteUpdate ();
@@ -927,17 +932,19 @@ EslrRoutingProtocol::HandleRouteResponses (ESLRRoutingHeader hdr, Ipv4Address se
       RoutingTable::RoutesI primaryRoute, secondaryRoute, mainRoute;
       bool foundPrimary, foundSecondary, foundMain;
 
+      // Find the main route
       foundMain = m_routing.FindRouteRecord (it->GetDestAddress (), it->GetDestMask (), mainRoute, eslr::MAIN);
+      
+      // Find the primary route, which represents the main route
       foundPrimary = m_routing.FindRouteInBackup (it->GetDestAddress (), it->GetDestMask (), primaryRoute, eslr::PRIMARY);
+      
+      // Find the backup route
       foundSecondary = m_routing.FindRouteInBackup (it->GetDestAddress (), it->GetDestMask (), secondaryRoute, eslr::SECONDARY);
       
       if (!foundPrimary && !foundSecondary)
       {
         // No existing routes for the destination. 
         // Add a new route.
-        // Initially routes are added to the the backup table.
-        // after expiring the settling time, routes will be moved to the main routing table
-        // The route status will change as primary (on both Main and Backup tables).
         NS_LOG_LOGIC ("New network received. Add it to both Main an Backup tables.");
 
         AddNetworkRouteTo ( it->GetDestAddress (), 
@@ -1155,6 +1162,7 @@ void
 EslrRoutingProtocol::InvalidateRoutesForInterface (uint32_t interface, eslr::Table table)
 {
   NS_LOG_FUNCTION (this << "Find and delete routes for interface: " << interface );
+  
   m_routing.InvalidateRoutesForInterface (interface, m_routeTimeoutDelay, m_garbageCollectionDelay, m_routeSettlingDelay);
 }
 
@@ -1164,6 +1172,7 @@ EslrRoutingProtocol::InvalidateBrokenRoute (Ipv4Address destAddress, Ipv4Mask de
   NS_LOG_FUNCTION (this << destAddress );
 
   bool retVal = m_routing.InvalidateBrokenRoute (destAddress, destMask, gateway, m_routeTimeoutDelay, m_garbageCollectionDelay, m_routeSettlingDelay, table);
+  
   return retVal;
 }
 
