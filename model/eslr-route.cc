@@ -1357,6 +1357,38 @@ RoutingTable::AssignStream (int64_t stream)
   m_rng->SetStream (stream);
 }
 
+void 
+RoutingTable::ReturnRoute (Ipv4Address destination, Ptr<NetDevice> dev, RoutesI &retRoutingTableEntry)
+{
+  NS_LOG_FUNCTION (this << destination);  
+
+  Ipv4Address foundDestination;
+  Ipv4Mask foundMask;
+
+  NS_LOG_LOGIC ("Searching for a route to " << destination);
+         
+  for (RoutesI it = m_mainRoutingTable.begin ();  it!= m_mainRoutingTable.end (); it++)
+  {
+    if (it->first->GetValidity () == eslr::VALID)
+    {        
+      foundDestination = it->first->GetDestNetwork ();
+      foundMask = it->first->GetDestNetworkMask ();
+      
+      if (foundMask.IsMatch (destination, foundDestination))
+      {
+        NS_LOG_LOGIC ("found a route " << it->first << ", with the mask " << foundMask);
+        
+        if ((!dev) || (dev == m_ipv4->GetNetDevice (it->first->GetInterface ())))
+        {
+          retRoutingTableEntry = it;
+          // As a route is found it is not necessary to iterate through the routing table anymore
+          return;
+        }
+      }
+    }
+  }
+}
+
 
 std::ostream & operator << (std::ostream& os, const RoutingTableEntry& rte)
 {

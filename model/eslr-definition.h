@@ -28,7 +28,7 @@ namespace eslr {
  * Header sizes of the ESLR Protocol
  */
 
-  #define RUM_SIZE 15 //!< Route Update Message Size
+  #define RUM_SIZE 16 //!< Route Update Message Size
   #define KAM_SIZE 16 //!< Keel Alive Message Header Size
   #define SRC_SIZE 16 //!< Server Route Communication Message Header Size
   #define ESLR_BASE_SIZE 7 //!< ESLR Header Base Size
@@ -77,9 +77,9 @@ namespace eslr {
   enum EslrHeaderRequestType
   {
     NON = 0x00, //!< Non is requesting. This is set when ESLR header used to send KAM and SRC messages
-    ET = 0x01, //!< Entire Table
+    OE = 0x01, //!< Only one Entry 
     NE = 0x02, //!< Number of Entries specified in the ESLRRoutingHeader::NoE
-    OE = 0x03, //!< Only one Entry 
+    ET = 0x03, //!< Entire Table
     RESPOND = 0xff, //!< For all respond messages
   };
 

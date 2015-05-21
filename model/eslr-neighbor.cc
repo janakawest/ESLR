@@ -87,7 +87,6 @@ namespace eslr {
   {    
     NS_LOG_FUNCTION ("Added a new Neighbor " << neighborEntry->GetNeighborID());
 
-		//std::cout << "Add Neighbor neighbor " << neighborEntry->GetNeighborID () << ":" << neighborEntry->GetNeighborAddress () << std::endl;
     EventId invalidateEvent = Simulator::Schedule (invalidateTime, &NeighborTable::InvalidateNeighbor, this, neighborEntry, invalidateTime, deleteTime, routingTable);
     m_neighborTable.push_front(std::make_pair (neighborEntry,invalidateEvent));
 

@@ -19,9 +19,11 @@
 */
 
 #include <iomanip>
+#include <string>
 
 #include "eslr-main.h"
 
+#include "ns3/string.h"
 #include "ns3/log.h"
 #include "ns3/abort.h"
 #include "ns3/assert.h"
@@ -51,11 +53,6 @@ EslrRoutingProtocol::EslrRoutingProtocol() :  m_ipv4 (0),
                                               m_neighborTable ()
 {
   m_rng = CreateObject<UniformRandomVariable> ();
-
-  //  for testing purposes
-  //  AddNetworkRouteTo (Ipv4Address (), Ipv4Mask (), "11.118.126.1", 1, 10, 2, eslr::SECONDARY, eslr::BACKUP, Seconds (50), Seconds (20), Seconds (100));
-
-  //  AddNetworkRouteTo (Ipv4Address (), Ipv4Mask (), "212.23.25.10", 6, 15, 6, eslr::SECONDARY, eslr::BACKUP, Seconds (500), Seconds (20), Seconds (0));
 }
 
 EslrRoutingProtocol::~EslrRoutingProtocol () {/*destructor*/}
@@ -141,7 +138,9 @@ EslrRoutingProtocol::DoInitialize ()
 
   // build the socket interface list
   // The interface ID = 0 is not considered in this implementation
-  // 0th interface is always the loop back interface "127.0.0.1". Therefore, for the route management, the interface 0 is Purposely omited
+  // 0th interface is always the loop back interface "127.0.0.1". 
+  // Hence, for the route management, the interface 0 is Purposely omitted
+  
   for (uint32_t interfaceId = 1 ; interfaceId < m_ipv4->GetNInterfaces (); interfaceId++)
   {
     bool activeInterface = false;
@@ -190,7 +189,7 @@ EslrRoutingProtocol::DoInitialize ()
     m_recvSocket->SetRecvPktInfo (true);
   }
 
-  // Schedule to send the Hello/KAM messages to discove and initiate the neighbor tables
+  // Schedule to send the Hello/KAM messages to discover and initiate the neighbor tables
   Time delay = Seconds (m_rng->GetValue (0.1, 0.01*m_kamTimer.GetSeconds ()));
   m_nextKeepAliveMessage = Simulator::Schedule (delay, &EslrRoutingProtocol::sendKams, this);
 
@@ -236,20 +235,6 @@ EslrRoutingProtocol::DoDispose ()
   m_routing.DoDispose ();
 }
 
-Ptr<Ipv4Route> 
-EslrRoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header, Ptr<NetDevice> oif,Socket::SocketErrno &sockerr)
-{
-  Ptr<Ipv4Route> rtEntry = 0;
-  return rtEntry;
-}
-
-bool 
-EslrRoutingProtocol::RouteInput (Ptr<const Packet> p, const Ipv4Header &header, Ptr<const NetDevice> idev, UnicastForwardCallback ucb, MulticastForwardCallback mcb, LocalDeliverCallback lcb, ErrorCallback ecb)
-{
-  bool retVal = false;
-  return retVal;
-}
-
 void 
 EslrRoutingProtocol::NotifyInterfaceUp (uint32_t interface)
 {
@@ -266,11 +251,15 @@ EslrRoutingProtocol::NotifyInterfaceUp (uint32_t interface)
       if (iface.GetLocal() == Ipv4Address ("127.0.0.1"))
       {
         /* host route for the Interface 0*/
-        AddHostRouteTo (iface.GetLocal(), 0, 0, 0, eslr::PRIMARY, eslr::MAIN, Seconds (0), Seconds (0), Seconds (0));
+        AddHostRouteTo (iface.GetLocal(), 0, 0, 0, 
+                        eslr::PRIMARY, eslr::MAIN, 
+                        Seconds (0), Seconds (0), Seconds (0));
       }
       else
       {
-        AddNetworkRouteTo (ifaceNetworkAddress, ifaceNetMask, interface, 0, 0, eslr::PRIMARY, eslr::MAIN, Seconds (0), Seconds (0), Seconds (0));
+        AddNetworkRouteTo (ifaceNetworkAddress, ifaceNetMask, interface, 0, 0, 
+                           eslr::PRIMARY, eslr::MAIN, 
+                           Seconds (0), Seconds (0), Seconds (0));
       }
     }    
   }
@@ -347,11 +336,14 @@ EslrRoutingProtocol::NotifyInterfaceDown (uint32_t interface)
 {
   NS_LOG_FUNCTION (this << interface);
   
+  // as neighbors are invalidated automatically,
+  // and all routes that are referring this interface will be
+  // removed from the routing tables, 
+  // neighbors are not invalidated forcefully.
+    
   InvalidateRoutesForInterface (interface, eslr::BACKUP);
   InvalidateRoutesForInterface (interface, eslr::MAIN);
-
-  //To do: invalidate neighbors for the interface
-
+  
   for (SocketListI iter = m_sendSocketList.begin (); iter != m_sendSocketList.end (); iter++ )
   {
     NS_LOG_LOGIC ("Checking socket for interface " << interface);
@@ -369,6 +361,7 @@ EslrRoutingProtocol::NotifyInterfaceDown (uint32_t interface)
   if (m_interfaceExclusions.find (interface) == m_interfaceExclusions.end ())
   {
     // Forcefully cancel out the triggered update cool-down time.
+    // Then send the triggered update as this is an emergency situation.
       m_nextTriggeredUpdate.Cancel ();
     SendTriggeredRouteUpdate ();
   }
@@ -433,6 +426,7 @@ EslrRoutingProtocol::SetIpv4 (Ptr<Ipv4> ipv4)
 
   uint32_t i = 0;
   m_ipv4 = ipv4;
+  m_nodeId  = m_ipv4->GetObject<Node> ()->GetId ();
 
   for (i = 0; i < m_ipv4->GetNInterfaces (); i++)
   {
@@ -488,7 +482,7 @@ void EslrRoutingProtocol::sendKams ()
   tag.SetTtl (1);
   p->AddPacketTag (tag);
   
-  // Note:In this method, we assume that number of iterfaces are not exceeding Maximum RUMs that a 
+  // Note:In this method, we assume that number of interfaces are not exceeding Maximum RUMs that a 
   //      ESLRRouting header supports. Therefore, we do not consider of calculating the number of 
   //      RUMs that include in to a ESLRouting header. 
   //      However, following equation can be used to calculate maximum number of RUMs 
@@ -530,6 +524,7 @@ void EslrRoutingProtocol::sendKams ()
       NS_LOG_LOGIC ("SendTo: " << *p);
       
       // Send KAM updates
+      // send it via link local broadcast      
       iter->first->SendTo (p, 0, InetSocketAddress (iface.GetBroadcast (), ESLR_BROAD_PORT));	
       p->RemoveHeader (hdr);
       hdr.ClearKams ();
@@ -542,9 +537,85 @@ void EslrRoutingProtocol::sendKams ()
 }
 
 void 
-EslrRoutingProtocol::SendRouteRequest ()
+EslrRoutingProtocol::SendRouteRequestTo (Ipv4Address toAddress, eslr::EslrHeaderRequestType reqType)
 {
-  //tbi
+  // At the moment, in this version of ESLR, routes are requesting from only one node.
+  
+  NS_LOG_FUNCTION (this << toAddress << reqType);
+  Ptr<Packet> p = Create<Packet> ();
+  SocketIpTtlTag tag;
+
+  //p->RemovePacketTag (tag);
+  tag.SetTtl (1);
+  p->AddPacketTag (tag);  
+  
+  //Get the relevant neighbor information for the provided destination address
+  NeighborTable::NeighborI it;
+  bool foundNeighbor =  m_neighborTable.FindValidNeighborForAddress (toAddress, it);
+  
+  if (!foundNeighbor)
+  {
+    NS_ABORT_MSG ("No neighbor found for the specified destination address, aborting!.");  
+  }
+  
+  if (reqType == eslr::OE)
+  {
+    NS_LOG_LOGIC("Requesting only one record from " << toAddress);
+
+    ESLRRoutingHeader hdr;
+    
+    hdr.SetCommand (eslr::RU);
+    hdr.SetRuCommand (eslr::REQUEST);
+    hdr.SetRoutingTableRequestType (eslr::OE);
+    hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
+    hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr
+    
+    // Todo: Implement this method 
+  }
+  else if (reqType == eslr::NE)
+  {
+    NS_LOG_LOGIC("Requesting set of records from " << toAddress);
+
+    ESLRRoutingHeader hdr;
+    
+    hdr.SetCommand (eslr::RU);
+    hdr.SetRuCommand (eslr::REQUEST);
+    hdr.SetRoutingTableRequestType (eslr::NE);
+    hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
+    hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr
+    
+    // Todo: Implement this method
+  }
+  else if (reqType == eslr::ET)
+  {
+    NS_LOG_LOGIC("Requesting the entire routing table from " << toAddress);
+
+    ESLRRoutingHeader hdr;
+    
+    hdr.SetCommand (eslr::RU);
+    hdr.SetRuCommand (eslr::REQUEST);
+    hdr.SetRoutingTableRequestType (eslr::ET);
+    hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
+    hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr  
+    
+    // create the RUM and add some dummy data
+    ESLRrum rum;
+    
+    rum.SetSequenceNo (0);
+    rum.SetMatric (0);
+    rum.SetDestAddress (Ipv4Address ());
+    rum.SetDestMask (Ipv4Mask ());
+
+    hdr.AddRum (rum);
+    
+    p->AddHeader (hdr);
+    
+    NS_LOG_DEBUG ("ESLR: send the route request to : " << toAddress);
+    
+    // send it via link local broadcast    
+    Ipv4Address broadAddress = toAddress.GetSubnetDirectedBroadcast (it->first->GetNeighborMask ());  
+    it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (broadAddress, ESLR_MULT_PORT));
+  }  
 }
 
 void 
@@ -554,7 +625,7 @@ EslrRoutingProtocol::SendTriggeredRouteUpdate ()
 
   if (m_nextTriggeredUpdate.IsRunning())
   {
-    NS_LOG_LOGIC ("Skipping Triggered Update due to cooldown");
+    NS_LOG_LOGIC ("Skipping Triggered Update due to cool-down");
     return;
   }
 
@@ -604,6 +675,9 @@ EslrRoutingProtocol::DoSendRouteUpdate (eslr::UpdateType updateType)
   NeighborTable::NeighborI it;
 
   // acquiring an instance of the main routing table
+  // Note that this instance is a separately created 
+  // fresh instance of the routing table. remove it after you use it.
+  // this is done to accelerate the accessibility of the main routing table.
   RoutingTable::RoutingTableInstance tempMainTable;
   m_routing.ReturnRoutingTable (tempMainTable, eslr::MAIN);
   RoutingTable::RoutesI rtIter;
@@ -649,13 +723,13 @@ EslrRoutingProtocol::DoSendRouteUpdate (eslr::UpdateType updateType)
         { 
           ESLRrum rum;
 
-          if (rtIter->first->GetValidity () == eslr::VALID)
+          if (rtIter->first->GetValidity () == eslr::INVALID)
+            continue; // ignore the invalid route. 
+          else if (rtIter->first->GetValidity () == eslr::VALID)
             rum.SetSequenceNo (rtIter->first->GetSequenceNo () + 2);
           else if (rtIter->first->GetValidity () == eslr::DISCONNECTED)
             rum.SetSequenceNo (rtIter->first->GetSequenceNo () + 1);
-          else if (rtIter->first->GetValidity () == eslr::INVALID)
-            continue; // ignore the invalid route. 
-
+            
           rum.SetMatric (rtIter->first->GetMetric ());
           rum.SetDestAddress (rtIter->first->GetDestNetwork ());
           rum.SetDestMask (rtIter->first->GetDestNetworkMask ());
@@ -667,6 +741,7 @@ EslrRoutingProtocol::DoSendRouteUpdate (eslr::UpdateType updateType)
           p->AddHeader (hdr);
           NS_LOG_LOGIC ("SendTo: " << *p);
           
+          // send it via link local broadcast
           //it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (ESLR_MULT_ADD, ESLR_MULT_PORT));
           it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (iface.GetBroadcast (), ESLR_MULT_PORT));
           p->RemoveHeader (hdr);
@@ -677,7 +752,7 @@ EslrRoutingProtocol::DoSendRouteUpdate (eslr::UpdateType updateType)
       {
         p->AddHeader (hdr);
         NS_LOG_LOGIC ("SendTo: " << *p);
-     
+        // send it via link local broadcast     
         //it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (ESLR_MULT_ADD, ESLR_MULT_PORT));
         it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (iface.GetBroadcast (), ESLR_MULT_PORT));
       }
@@ -817,8 +892,8 @@ EslrRoutingProtocol::HandleKamRequests (ESLRRoutingHeader hdr, Ipv4Address sende
 
   if (m_interfaceExclusions.find (incomingInterface) == m_interfaceExclusions.end ())
   {
-    // Assuming that future version of the KAMs contain multiple messages,
-    // This method is implemented.
+    // This method is implemented by assuming the future version of the ESLR:KAMs 
+    // contain multiple message types.
     for (std::list<KAMHeader>::iterator iter = kams.begin (); iter != kams.end (); iter++)
     {
       NeighborTable::NeighborI neighborRecord;
@@ -845,6 +920,9 @@ EslrRoutingProtocol::HandleKamRequests (ESLRRoutingHeader hdr, Ipv4Address sende
                                       m_garbageCollectionDelay, m_routing, 
                                       m_routeTimeoutDelay, m_garbageCollectionDelay, 
                                       m_routeSettlingDelay);
+                                      
+        //Requests the routing table of the newly added neighbor
+        SendRouteRequestTo (iter->GetGateway (), eslr::ET);                                              
 			}
       else
 			{
@@ -862,8 +940,6 @@ EslrRoutingProtocol::HandleKamRequests (ESLRRoutingHeader hdr, Ipv4Address sende
 					 																				 
 				m_neighborTable.UpdateNeighbor (existingNeighbor, m_neighborTimeoutDelay, 
                                         m_garbageCollectionDelay, m_routing);	
-
-        // To do: Ask initial routes
       }
     }
   }
@@ -872,7 +948,221 @@ EslrRoutingProtocol::HandleKamRequests (ESLRRoutingHeader hdr, Ipv4Address sende
 void 
 EslrRoutingProtocol::HandleRouteRequests (ESLRRoutingHeader hdr, Ipv4Address senderAddress, uint16_t senderPort, uint32_t incomingInterface)
 {
-  // Todo
+  NS_LOG_FUNCTION (this << senderAddress << senderPort << incomingInterface);
+  
+  eslr::EslrHeaderRequestType reqType = hdr.GetRoutingTableRequestType ();
+  
+  std::list<ESLRrum> rums = hdr.GetRumList ();
+  
+  if (rums.empty ())
+  {
+    NS_LOG_LOGIC ("ESLR: Ignoring an update message with no requests: " << incomingInterface);
+    return;
+  }
+
+  if (m_interfaceExclusions.find (incomingInterface) != m_interfaceExclusions.end ())
+  {
+    NS_LOG_LOGIC ("ESLR: Ignoring an update message from an excluded interface: " << senderAddress);
+    return;
+  }  
+  
+  //Get the relevant neighbor information for the provided destination address
+  NeighborTable::NeighborI it;
+  bool foundNeighbor =  m_neighborTable.FindValidNeighborForAddress (senderAddress, it);
+  
+  // acquiring an instance of the main routing table
+  RoutingTable::RoutingTableInstance tempMainTable;
+  m_routing.ReturnRoutingTable (tempMainTable, eslr::MAIN);
+  RoutingTable::RoutesI rtIter;  
+  
+  if (!foundNeighbor)
+  {
+    NS_LOG_LOGIC ("ESLR: No neighbor found for the specified destination address, returning!.");
+    return;
+  }  
+
+  if (reqType == eslr::OE)
+  {
+    // As th request for a one route, no need of considering the split-horizon
+    NS_LOG_LOGIC("ESLR: " << senderAddress << " Requested only one record.");
+    
+    Ptr<Packet> p = Create<Packet> ();
+    SocketIpTtlTag tag;
+    p->RemovePacketTag (tag);
+    tag.SetTtl (0);
+    p->AddPacketTag (tag);
+
+    ESLRRoutingHeader hdr;
+    hdr.SetCommand (eslr::RU);
+    hdr.SetRuCommand (eslr::RESPONSE);
+    hdr.SetRoutingTableRequestType (eslr::NON);
+    hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
+    hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr
+    
+    // find the route record matches the destination address given in the RUM
+    // in this case the valid routes are only considered.
+    // further, split-horizoning is not considered.  
+    RoutingTable::RoutesI foundRoute;
+    bool foundInMain = m_routing.FindValidRouteRecord (rums.begin ()->GetDestAddress (), rums.begin ()->GetDestMask (), foundRoute, eslr::MAIN);
+    
+    if (!foundInMain)
+    {
+      NS_LOG_LOGIC ("ESLR: No route record found for the specified destination address, returning!.");
+      return;      
+    }
+    
+    ESLRrum rum;
+
+    rum.SetSequenceNo (foundRoute->first->GetSequenceNo () + 2);
+    rum.SetMatric (foundRoute->first->GetMetric ());
+    rum.SetDestAddress (foundRoute->first->GetDestNetwork ());
+    rum.SetDestMask (foundRoute->first->GetDestNetworkMask ());
+
+    hdr.AddRum (rum);
+
+    p->AddHeader (hdr);
+    NS_LOG_DEBUG ("ESLR: reply to the request came from " << senderAddress);
+ 
+    Ipv4Address broadAddress = senderAddress.GetSubnetDirectedBroadcast (it->first->GetNeighborMask ());  
+    it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (broadAddress, ESLR_MULT_PORT));    
+  }
+  else if (reqType == eslr::NE)
+  {
+    NS_LOG_LOGIC("ESLR: " << senderAddress << " Requested set of records.");
+    
+    // Calculating the Number of RUMs that can add to the ESLR Routing Header
+    uint16_t mtu = m_ipv4->GetMtu (incomingInterface);
+    uint16_t maxRum = (mtu - Ipv4Header ().GetSerializedSize () - UdpHeader ().GetSerializedSize () -  ESLRRoutingHeader ().GetSerializedSize ()) / ESLRrum ().GetSerializedSize ();    
+
+    Ptr<Packet> p = Create<Packet> ();
+    SocketIpTtlTag tag;
+    p->RemovePacketTag (tag);
+    tag.SetTtl (0);
+    p->AddPacketTag (tag);
+
+    ESLRRoutingHeader hdr;
+    hdr.SetCommand (eslr::RU);
+    hdr.SetRuCommand (eslr::RESPONSE);
+    hdr.SetRoutingTableRequestType (eslr::NON);
+    hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
+    hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr
+
+    RoutingTable::RoutesI foundRoute;
+    bool foundInMain;        
+    for (std::list<ESLRrum>::iterator iter = rums.begin (); iter != rums.end (); iter++)
+    {
+      // check for the route's availability based on the destination address and mask.
+      foundInMain = m_routing.FindValidRouteRecord (iter->GetDestAddress (), iter->GetDestMask (), foundRoute, eslr::MAIN);
+      
+      if (!foundInMain)
+      {
+        // As there are no route for the the given destination, continue to the next RUM
+        NS_LOG_LOGIC("ESLR: No routes found for the " << iter->GetDestAddress () << " continue...");
+        continue;        
+      }
+      
+      ESLRrum rum;
+
+      // Splithorizon is not considered. 
+      rum.SetSequenceNo (foundRoute->first->GetSequenceNo () + 2);
+      rum.SetMatric (foundRoute->first->GetMetric ());
+      rum.SetDestAddress (foundRoute->first->GetDestNetwork ());
+      rum.SetDestMask (foundRoute->first->GetDestNetworkMask ());
+
+      hdr.AddRum (rum);      
+
+      if (hdr.GetNoe () == maxRum)
+      {
+        p->AddHeader (hdr);
+        
+        NS_LOG_DEBUG ("ESLR: reply to the request came from " << senderAddress);
+        
+        // use the link local broadcast
+        Ipv4Address broadAddress = senderAddress.GetSubnetDirectedBroadcast (it->first->GetNeighborMask ());  
+        it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (broadAddress, ESLR_MULT_PORT));
+        
+        p->RemoveHeader (hdr);
+        hdr.ClearRums ();
+      }      
+    }
+    if (hdr.GetNoe () > 0)
+    {
+      p->AddHeader (hdr);
+      NS_LOG_DEBUG ("ESLR: reply to the request came from " << senderAddress);
+      
+      // use the link local broadcast
+      Ipv4Address broadAddress = senderAddress.GetSubnetDirectedBroadcast (it->first->GetNeighborMask ());  
+      it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (broadAddress, ESLR_MULT_PORT));
+    } 
+  }
+  else if (reqType == eslr::ET)
+  {
+    NS_LOG_LOGIC(senderAddress << " Requested entire routing table.");
+
+    // Calculating the Number of RUMs that can add to the ESLR Routing Header
+    uint16_t mtu = m_ipv4->GetMtu (incomingInterface);
+    uint16_t maxRum = (mtu - Ipv4Header ().GetSerializedSize () - UdpHeader ().GetSerializedSize () - ESLRRoutingHeader ().GetSerializedSize ()) / ESLRrum ().GetSerializedSize ();
+
+    Ptr<Packet> p = Create<Packet> ();
+    SocketIpTtlTag tag;
+    p->RemovePacketTag (tag);
+    tag.SetTtl (0);
+    p->AddPacketTag (tag);
+
+    ESLRRoutingHeader hdr;
+    hdr.SetCommand (eslr::RU);
+    hdr.SetRuCommand (eslr::RESPONSE);
+    hdr.SetRoutingTableRequestType (eslr::NON);
+    hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
+    hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr
+    
+    for (rtIter = tempMainTable.begin (); rtIter != tempMainTable.end (); rtIter++)
+    {
+      bool splitHorizoning = (rtIter->first->GetInterface () == incomingInterface);
+
+      bool isLocalHost = ((rtIter->first->GetDestNetwork () == "127.0.0.1") && (rtIter->first->GetDestNetworkMask () == Ipv4Mask::GetOnes ()));
+
+      // Note: Split horizon is considered while responding to a route request
+      // In addition, only valid routes are considered for generating route update messages. 
+      if ((m_splitHorizonStrategy != (SPLIT_HORIZON && splitHorizoning)) && 
+          (!isLocalHost) &&
+          (rtIter->first->GetValidity () == eslr::VALID))
+      { 
+        ESLRrum rum;
+
+        rum.SetSequenceNo (rtIter->first->GetSequenceNo () + 2);
+        rum.SetMatric (rtIter->first->GetMetric ());
+        rum.SetDestAddress (rtIter->first->GetDestNetwork ());
+        rum.SetDestMask (rtIter->first->GetDestNetworkMask ());
+
+        hdr.AddRum (rum);
+      }
+      if (hdr.GetNoe () == maxRum)
+      {
+        p->AddHeader (hdr);
+        
+        NS_LOG_DEBUG ("ESLR: reply to the request came from " << senderAddress);
+        
+        Ipv4Address broadAddress = senderAddress.GetSubnetDirectedBroadcast (it->first->GetNeighborMask ());  
+        it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (broadAddress, ESLR_MULT_PORT));
+        p->RemoveHeader (hdr);
+        hdr.ClearRums ();
+      }
+    }
+    if (hdr.GetNoe () > 0)
+    {
+      p->AddHeader (hdr);
+      NS_LOG_DEBUG ("ESLR: reply to the request came from " << senderAddress);
+   
+      Ipv4Address broadAddress = senderAddress.GetSubnetDirectedBroadcast (it->first->GetNeighborMask ());  
+      it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (broadAddress, ESLR_MULT_PORT));
+    }        
+  }
+  // In order to synchronize the SeqNo of local routes, increment those.
+  m_routing.IncrementSeqNo ();
+  
+  // Finally clear out the created table instance of the main routing table.
+  tempMainTable.clear ();  
 }
 
 void 
@@ -925,9 +1215,9 @@ EslrRoutingProtocol::HandleRouteResponses (ESLRRoutingHeader hdr, Ipv4Address se
 
       // To do: write methods to calculate LR cost
       // for now, all routes will get a random cost between 1-20 at the receive
-
-      uint16_t lrCost = m_rng->GetValue (1,10);
-      uint16_t slrCost = it->GetMatric () + lrCost;
+      
+      uint32_t lrCost = CalculateLRCost (m_ipv4->GetNetDevice (incomingInterface));
+      uint32_t slrCost = it->GetMatric () + lrCost;
 
       RoutingTable::RoutesI primaryRoute, secondaryRoute, mainRoute;
       bool foundPrimary, foundSecondary, foundMain;
@@ -1090,6 +1380,163 @@ EslrRoutingProtocol::HandleRouteResponses (ESLRRoutingHeader hdr, Ipv4Address se
   }    
 }
 
+Ptr<Ipv4Route> 
+EslrRoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header, Ptr<NetDevice> oif,Socket::SocketErrno &sockerr)
+{
+  NS_LOG_FUNCTION (this << header << oif);
+  
+  Ptr<Ipv4Route> rtEntry = 0;
+  Ipv4Address destination = header.GetDestination ();
+  
+  if (destination.IsMulticast ())
+  {
+    // Note:  Multicast routes for outbound packets are stored in the normal unicast table.
+    // This is a well-known property of sockets implementation on many Unix variants.
+    // So, just log it and follow the static route search for multicasting also
+    NS_LOG_LOGIC ("ESLR RouteOutput (): Multicast destination");
+  }
+  
+  rtEntry  = LookupRoute (destination, oif);
+  
+  if (rtEntry)
+  {
+    NS_LOG_LOGIC ("ESLR: found the route" << rtEntry);  
+    sockerr = Socket::ERROR_NOTERROR;
+  }
+  else
+  {
+    NS_LOG_LOGIC ("ESLR: no route entry found. Returning the Socket Error");  
+    sockerr = Socket::ERROR_NOROUTETOHOST;
+  }   
+    
+  return rtEntry;
+}
+
+bool 
+EslrRoutingProtocol::RouteInput (Ptr<const Packet> p, const Ipv4Header &header, Ptr<const NetDevice> idev, UnicastForwardCallback ucb, MulticastForwardCallback mcb, LocalDeliverCallback lcb, ErrorCallback ecb)
+{
+  NS_LOG_FUNCTION (this << p << header << header.GetSource () << header.GetDestination () << idev);
+  
+  bool retVal = false;
+  
+  NS_ASSERT (m_ipv4 != 0);
+  NS_ASSERT (m_ipv4->GetInterfaceForDevice (idev) >= 0);
+  
+  uint32_t iif = m_ipv4->GetInterfaceForDevice (idev);
+  Ipv4Address dstinationAddress = header.GetDestination ();
+  
+  if (dstinationAddress.IsMulticast ())
+  {
+    NS_LOG_LOGIC ("ESLR: Multicast routes are not supported by the ESLR");
+    return (retVal = false); // Let other routing protocols try to handle this
+  }    
+  
+  // First find the local interfaces and forward the packet locally.
+  // Note: As T. Pecorella mentioned in the RIPng implementation,
+  // this method is also checks every interface before forwarding the packet among the local interfaces.
+  // However, if we enable the configuration option as mentioned in the \RFC{1222},
+  // this forwarding can be done bit intelligently.
+  
+  for (uint32_t j = 0; j < m_ipv4->GetNInterfaces (); j ++)
+  {
+    for (uint32_t i = 0; i < m_ipv4->GetNAddresses (j); i ++)
+    {
+      Ipv4InterfaceAddress iface = m_ipv4->GetAddress (j, i);
+      Ipv4Address address = iface.GetLocal ();
+    
+      if (address.IsEqual (header.GetDestination ()))
+      {
+        if (j == iif)
+        {
+          NS_LOG_LOGIC ("ESLR: packet is for me and forwarding it for the interface " << iif);
+        }
+        else
+        {
+          NS_LOG_LOGIC ("ESLR: packet is for me but for different interface " << j);
+        }
+        
+        lcb (p, header, iif);
+        return (retVal = true);
+      }
+      
+      NS_LOG_LOGIC ("Address " << address << " is not a match");
+    }
+  }  
+  
+  // Check the input device supports IP forwarding
+  if (m_ipv4->IsForwarding (iif) == false)
+  {
+    NS_LOG_LOGIC ("ESLR: packet forwarding is disabled for this interface " << iif);
+    
+    ecb (p, header, Socket::ERROR_NOROUTETOHOST);
+    return (retVal = false);
+  }
+
+  // Finally, check for route and forwad the packet to the next hop
+  NS_LOG_LOGIC ("ESLR: finding a route in the routing table");
+  
+  Ptr<Ipv4Route> route = LookupRoute (header.GetDestination ()); 
+  
+  if (route != 0)
+  {
+    NS_LOG_LOGIC ("ESLR: found a route and calling uni-cast callback");
+    ucb (route, p, header);  // uni-cast forwarding callback
+    return (retVal = true);
+  }
+  else
+  {
+    NS_LOG_LOGIC ("ESLR: no route found");
+    return (retVal = false);      
+  }
+}
+
+Ptr<Ipv4Route>
+EslrRoutingProtocol::LookupRoute (Ipv4Address address, Ptr<NetDevice> dev)
+{
+  NS_LOG_FUNCTION (this << address << dev);
+  
+  Ptr<Ipv4Route> rtentry = 0;
+  
+  // Note: if the packet is destined for local multicasting group, 
+  // the relevant interfaces has to be specified while looking up the route
+  if(address.IsLocalMulticast ())
+  {
+    NS_ASSERT_MSG (m_ipv4->GetInterfaceForDevice (dev), "DVRP: destination is for multicasting, and however, no interface index is given!");
+    
+    rtentry = Create<Ipv4Route> ();
+    
+    // As the packet is destined to local multicast group, while finding the source address, 
+    // the address scope is set as LINK local address
+    rtentry->SetSource (m_ipv4->SelectSourceAddress (dev, address, Ipv4InterfaceAddress::LINK)); 
+    rtentry->SetDestination (address);
+    rtentry->SetGateway (Ipv4Address::GetZero ());
+    rtentry->SetOutputDevice (dev);
+    
+    return rtentry;      
+  }
+  
+  //Now, select a route from the routing table which matches the destination address and its mask
+  RoutingTable::RoutesI theRoute;
+  m_routing.ReturnRoute (address, dev, theRoute);
+  
+  Ipv4RoutingTableEntry* route = theRoute->first;
+  uint32_t interfaceIndex = route->GetInterface ();
+
+  rtentry = Create<Ipv4Route> (); 
+  
+  rtentry->SetDestination (route->GetDest ());
+  rtentry->SetGateway (route->GetGateway ());
+  rtentry->SetOutputDevice (m_ipv4->GetNetDevice (interfaceIndex));  
+  
+  // As the packet is going to be forwarded in to the next hop, while finding the source address, 
+  // the address scope is set as global.          
+  rtentry->SetSource (m_ipv4->SelectSourceAddress (m_ipv4->GetNetDevice (interfaceIndex), route->GetDest (), Ipv4InterfaceAddress::GLOBAL));
+
+  NS_LOG_DEBUG ("ESLR: found a match for the destination " << rtentry->GetDestination () << " via " << rtentry->GetGateway ());  
+  
+  return rtentry; 
+}
+
 void 
 EslrRoutingProtocol::AddDefaultRouteTo (Ipv4Address nextHop, uint32_t interface)
 {
@@ -1243,6 +1690,72 @@ EslrRoutingProtocol::SetInterfaceExclusions (std::set<uint32_t> exceptions)
   NS_LOG_FUNCTION (this);
 
   m_interfaceExclusions = exceptions;    
+}
+
+uint32_t 
+EslrRoutingProtocol::CalculateLRCost (Ptr<NetDevice> dev)
+{
+  Ptr<Node> node = m_ipv4->GetObject<Node> ();
+  
+  double transDelay = 0.0, propagationDelay = 0.0, LCost = 0.0;
+  double RCost = 0.0, LRCost = 0.0;
+  
+  GetLinkDetails (dev, transDelay, propagationDelay);
+  
+  // the delay that a packet takes to reach to its other end
+  LCost = transDelay + propagationDelay; 
+  
+  RCost =  1 / (node->GetRouterMue () - node->GetRouterLambda ());
+  
+  LRCost =  (LCost + RCost) * 1000000; // in microseconds
+
+  return uint32_t (LRCost);
+}
+
+void
+EslrRoutingProtocol::GetLinkDetails (Ptr<NetDevice> dev, double &transDelay, double &propagationDelay)
+{
+  NS_LOG_FUNCTION (this<<dev);
+	NS_ASSERT_MSG((dev != 0),"Check the NetDevice");  
+	
+  Ptr<Node> node = m_ipv4->GetObject<Node> ();
+  
+  double linkBandwidth = 0.0, availableBW = 0.0;
+  uint32_t totalBitsInLink;
+    
+  // Get Channel Attributes
+  StringValue getDelay, getBW;
+  std::string temp, delay, bandwidth;
+  
+  Ptr<Channel> channel = dev->GetChannel ();
+  uint8_t nDevices = channel->GetNDevices ();
+  
+  channel->GetAttribute ("Delay", getDelay);
+  delay = getDelay.Get ().c_str ();
+  temp = delay.substr (1, (delay.size () - 2));
+  transDelay = (double)(atof (temp.c_str ())/1000000000.0); // in seconds
+  
+  // Get the capacity of the link
+  dev->GetAttribute("DataRate",getBW);
+  bandwidth = getBW.Get ().c_str ();
+  temp = bandwidth.substr (0, (bandwidth.size () - 3));
+  linkBandwidth = (double) (atof (temp.c_str ())); // in bps
+  
+  // now calculate the available bandwidth of the channel (entire link) 
+  Ptr<NetDevice> devList [nDevices];
+  for (uint8_t i = 0; i < nDevices; i++)
+  {
+    devList [i] = channel->GetDevice (i);
+    totalBitsInLink =+ (node->GetAveragePacketSizeOfDevice (channel->GetDevice (i)) *
+                        node->GetNofPacketsOfDevice (channel->GetDevice (i)) *
+                        8);    
+  } 
+  
+  // Available bandwidth of the link 
+  availableBW = linkBandwidth - totalBitsInLink;
+  
+  //based on the avilable bandwidth, the packet propagation time
+  propagationDelay = (node->GetAveragePacketSizeOfDevice (dev) * 8) / availableBW;;  
 }
 
 }// end of namespace eslr

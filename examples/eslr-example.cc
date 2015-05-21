@@ -176,15 +176,51 @@ main (int argc, char *argv[])
 
   ipv4.SetBase ("15.16.16.0","255.255.255.0");
   Ipv4InterfaceContainer iic7 = ipv4.Assign (ndc7);
+  
+  NS_LOG_INFO ("Setting the default gateways of the Source and Destination.");
+  Ipv4StaticRoutingHelper statRouting;
+  
+	// setting up the 'A' as the default gateway of the 'Src' 
+	Ptr<Ipv4StaticRouting> statSrc = statRouting.GetStaticRouting (src->GetObject<Ipv4> ());
+	statSrc->SetDefaultRoute (a->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), 1, 1);
+	
+  // setting up the 'D' as the default gateway of the 'Dst'
+	Ptr<Ipv4StaticRouting> statDst = statRouting.GetStaticRouting (dst->GetObject<Ipv4> ());
+	statDst->SetDefaultRoute (d->GetObject<Ipv4> ()->GetAddress (3, 0).GetLocal (), 1, 1);
+	
+	
 
       EslrHelper routingHelper;
       Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> (&std::cout);
 
       if (MTable || NTable || BTable)
         routingHelper.PrintRoutingTableEvery (Seconds (30), b, routingStream);
+        
+  
+    NS_LOG_INFO ("Setting up UDP echo server and client.");
+	//create server  	
+	uint16_t port = 9; // well-known echo port number
+	UdpEchoServerHelper server (port);
+	ApplicationContainer apps = server.Install (dst); 
+	
+	apps.Start (Seconds (10.0));
+	apps.Stop (Seconds (445.0));
+	
+	//create client	
+	Ptr<Ipv4> ipv4dst = dst->GetObject<Ipv4> ();
+	
+	UdpEchoClientHelper client (ipv4dst->GetAddress (1, 0).GetLocal (), port); 
+  client.SetAttribute ("MaxPackets", UintegerValue (100));
+  //client.SetAttribute ("Interval", TimeValue (Seconds (1.)));
+  client.SetAttribute ("PacketSize", UintegerValue (1024));
+  
+  apps = client.Install (src);
+  
+  apps.Start (Seconds (40.0));
+	apps.Stop (Seconds (420.0));
 
-      Simulator::Schedule (Seconds (400), &MakeLinkDown, b, d, 3, 2); 
-      Simulator::Schedule (Seconds (1850), &MakeLinkUp, b, d, 3, 2); 
+//      Simulator::Schedule (Seconds (400), &MakeLinkDown, b, d, 3, 2); 
+//      Simulator::Schedule (Seconds (1850), &MakeLinkUp, b, d, 3, 2); 
 
 //      Simulator::Schedule (Seconds (40), &MakeInterfaceDown, b, 3); 
 //      Simulator::Schedule (Seconds (185), &MakeInterfaceUp, b, 3); 

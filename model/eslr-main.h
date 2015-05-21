@@ -250,14 +250,25 @@ private:
   void UpdateRoute (Ipv4Address network, Ipv4Mask networkMask, Ipv4Address nextHop, uint32_t interface, uint16_t metric, uint16_t sequenceNo, eslr::RouteType routeType, eslr::Table table, Time timeoutTime, Time garbageCollectionTime, Time settlingTime);
 
   /**
-   * \brief Send Routing Updates on all interfaces.
+   * \brief Send Routing Updates for all neighbors.
    */
   void DoSendRouteUpdate (eslr::UpdateType updateType);
 
   /**
-   * \brief Send Routing Request on all interfaces.
+   * \brief Send Routing Request for a specified IP address.
+   * \Todo : implement this method to request from all nodes in a network using multicasting.
+   * \param toAddress the destination where we are requesting the routing table
+   * \param reqType the type of the request :
+   *        OE = 0x01, //!< Only one Entry 
+   *        NE = 0x02, //!< Number of Entries specified in the ESLRRoutingHeader::NoE
+   *        ET = 0x03, //!< Entire Table
+   *  in the case of NE, the ESLR header has to specify how may entries are requesting. 
+   *  That is done setting the NoE field in the ESLR header. 
+   *  In one ESLR header, it is possible to request maximum of 255 routes. 
+   *  However, based on the MTU of a link, number of request routes attach to the ESLR header is getting limited
+   *  For an example, for a link of 1500bytes, maximum number of routes is 98 records.
    */
-  void SendRouteRequest ();
+  void SendRouteRequestTo (Ipv4Address toAddress , eslr::EslrHeaderRequestType reqType);
 
   /**
    * \brief Send Triggered Routing Updates on all interfaces.
@@ -268,6 +279,64 @@ private:
    * \brief Send Unsolicited Routing Updates on all interfaces.
    */
   void SendPeriodicUpdate (void);
+  
+  /**
+   * \brief calculate the cumulative cost of 
+   * router's packet processing delay and, links packet propagation delay.
+   *
+   * the route's packet processing delay (ts) is calculated based on
+   * average packet arrival rate (i.e., Lambda) and 
+   * average packet service rate (i.e., Mue)
+   * the total packet processing cost for a route is 1/(Mue - Lambda) 
+   * (Assumption: router is work based on the M/M/1 Queue model)
+   * 
+   * Link packet propagation delay (tp) is calculated based on the
+   * link's capacity (i.e., link's bandwidth) (lc)
+   * link's load (ll)(i.e., current occupancy of the link), which is calculated as follow.
+   *  N1<------------>N2
+   *  Get size (per second) to be transmitted of the N1's interface x1 = (#ofPacket * averagePacketSize * 8)
+   *  Get size (per second) to be transmitted of the N2's interface x2 = (#ofPacket * averagePacketSize * 8)
+   *  so that ll = x1 + x2
+   *   Therefore available BW of the link (la) = lc - ll   
+   * it results that tp = averagePacketSize / la
+   *
+   * In addition, Links have their own transaction delay (tr), which is the delay of serialize the packet
+   *
+   * Consequently, a packet will take: ts + tp + tr delay to reach to it's next hop.
+   *
+   * \param dev the reference netdevice to retrieve link and interface attributes
+   * \returns the LRCost of the node (time in micro Seconds)
+   */  
+  uint32_t CalculateLRCost (Ptr<NetDevice> dev);
+  
+  /**
+   * \brief return the properties of the interface and its associated channel.
+   * \param dev the reference netdevice to retrieve link and interface attributes
+   * \param transDelay the links transaction delay (s)
+   * \param availableBW the available bandwidth of the link
+   *
+   *  the available bandwidth of the link is calculated as follow
+   *
+   * Link packet propagation delay (tp) is calculated based on the
+   * link's capacity (i.e., link's bandwidth) (lc)
+   * link's load (ll)(i.e., current occupancy of the link), which is calculated as follow.
+   *  N1<------------>N2
+   *  Get size (per second) to be transmitted of the N1's interface x1 = (#ofPacket * averagePacketSize * 8)
+   *  Get size (per second) to be transmitted of the N2's interface x2 = (#ofPacket * averagePacketSize * 8)
+   *  so that ll = x1 + x2
+   *   Therefore available BW of the link (la) = lc - ll   
+   */  
+  void GetLinkDetails (Ptr<NetDevice> dev, double &transDelay, double &availableBW);
+  
+  /**
+  * \brief look up for a forwarding route in the routing table.
+  *
+  * \param address destination address
+  * \param dev output net-device if any (assigned 0 otherwise)
+  * \return Ipv4Route where that the given packet has to be forwarded 
+  */
+  Ptr<Ipv4Route> LookupRoute (Ipv4Address address, Ptr<NetDevice> dev = 0);  
+  
 
 // \name For prtocol management
 // \{
@@ -321,7 +390,7 @@ private:
   Time m_maxTriggeredCooldownDelay; //!< maximum cool-down delay between two triggered updates
   Time m_periodicUpdateDelay; //!< delay between two periodic updates
 
-  int64_t m_stream;
+  int64_t m_stream; //!< stream for the uniform random variable
 // \}
 };// end of the class EslrRoutingProtocol
 }// end of namespace eslr

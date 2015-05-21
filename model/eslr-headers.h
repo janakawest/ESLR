@@ -41,9 +41,9 @@ namespace eslr {
 	* |      0        |      1        |      2        |      3      |
 	* 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
 	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |				Seq#		                |			     Metric	            |
+	* |				Seq#		                |			  Route tag	            |
 	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |    Route tag				          |   Prefix Len  |      NA     |
+	* |             				      Metric                            |
 	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 	* |				            Network Address / Host Address		  		  |
 	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -107,11 +107,11 @@ public:
    * \param metric value
    * \return the metric value
    */
-  uint16_t GetMatric () const
+  uint32_t GetMatric () const
   {
     return m_matric;
   }
-  void SetMatric (uint16_t matric)
+  void SetMatric (uint32_t matric)
   {
     m_matric = matric;
   }
@@ -152,28 +152,28 @@ public:
 	void SetDestMask (Ipv4Mask mask)
 	{
     m_mask = mask;
-    m_prefixLength = m_mask.GetPrefixLength ();
+    //m_prefixLength = m_mask.GetPrefixLength ();
 	}
 	Ipv4Mask GetDestMask () const
 	{
     return m_mask;
 	}
 
- /**
-   * \brief Get the prefix length of the mask.
-   * \return the route tag value
-   */
-  uint8_t GetPrefixLength () const
-  {
-    return m_prefixLength;
-  }
+// /**
+//   * \brief Get the prefix length of the mask.
+//   * \return the route tag value
+//   */
+//  uint8_t GetPrefixLength () const
+//  {
+//    return m_prefixLength;
+//  }
 
 
 private:
   uint16_t m_sequenceNumber; //!< sequence number
-  uint16_t m_matric; //!< metric (time to reach the destination)
+  uint32_t m_matric; //!< metric (time to reach the destination)
   uint16_t m_routeTag; //!< route tag
-  uint8_t m_prefixLength; //!< mask length
+//  uint8_t m_prefixLength; //!< mask length
   Ipv4Address m_destination; //!< destination network/host address
   Ipv4Mask m_mask; //!< destination network/host mask
   

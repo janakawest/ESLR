@@ -30,7 +30,7 @@ NS_OBJECT_ENSURE_REGISTERED (ESLRrum);
 ESLRrum::ESLRrum(): m_sequenceNumber (0),
                     m_matric (0),
                     m_routeTag (0),
-                    m_prefixLength (0),
+                    /*m_prefixLength (0),*/
                     m_destination (Ipv4Address ()),
                     m_mask (Ipv4Mask ())
 { /*Constructor*/ }
@@ -66,9 +66,9 @@ ESLRrum::Serialize (Buffer::Iterator i) const
   m_destination.Serialize (tmp);
   i.Write (tmp, 4);
   i.WriteHtonU32 (m_mask.Get ());
-  i.WriteU8 (m_prefixLength);
+  //i.WriteU8 (m_prefixLength);
   i.WriteHtonU16 (m_routeTag);
-  i.WriteHtonU16 (m_matric);
+  i.WriteHtonU32 (m_matric);
   i.WriteHtonU16 (m_sequenceNumber);
 }
 
@@ -80,9 +80,9 @@ ESLRrum::Deserialize (Buffer::Iterator i)
   i.Read (tmp, 4);
   m_destination  = Ipv4Address::Deserialize (tmp);
   m_mask = i.ReadNtohU32 ();
-  m_prefixLength = i.ReadU8 ();
+  //m_prefixLength = i.ReadU8 ();
   m_routeTag = i.ReadNtohU16 ();
-  m_matric = i.ReadNtohU16 ();
+  m_matric = i.ReadNtohU32 ();
   m_sequenceNumber = i.ReadNtohU16 ();
 
   return GetSerializedSize ();

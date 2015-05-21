@@ -108,11 +108,11 @@ public:
   * \returns the sequence number of the route record
   */
 
-  uint16_t GetMetric (void) const
+  uint32_t GetMetric (void) const
   {
     return m_metric;
   }
-  void SetMetric (uint16_t metric)
+  void SetMetric (uint32_t metric)
   {
     m_metric = metric;
   }
@@ -195,7 +195,7 @@ public:
 
 private:
   uint16_t m_sequenceNo; //!< sequence number of the route record
-  uint16_t m_metric; //!< route metric
+  uint32_t m_metric; //!< route metric
   bool m_changed; //!< route has been updated
   eslr::Validity m_validity; //!< validity of the routing record
   eslr::RouteType m_routeType; //!< The route record's type (Primary or Secondery)
@@ -449,6 +449,14 @@ public:
   * \brief toggle changed flag of all routes
   */
   void ToggleRouteChanged ();
+  
+  /**
+  * \brief return a route to the given destination and the given netdevice
+  * \param destination destination network
+  * \param dev the reference netdevice
+  * \param retRoutingTableEntry the returning routing table entry
+  */
+  void ReturnRoute (Ipv4Address destination, Ptr<NetDevice> dev, RoutesI &retRoutingTableEntry); 
 
 	void DoDispose ()
 	{
