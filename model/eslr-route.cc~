@@ -844,7 +844,8 @@ RoutingTable::InvalidateRoutesForGateway (Ipv4Address gateway,  Time invalidateT
   foundInMain = FindRoutesForGateway (gateway, routesInMain, eslr::MAIN);
   foundInBackup = FindRoutesForGateway (gateway, routesInBackup, eslr::BACKUP);
   
-      std::cout << int (m_nodeId) <<" InvalidateRoutesForGateway  " <<gateway<<std::endl;
+        if (m_nodeId  == 3)
+      std::cout << int (m_nodeId)"InvalidateRoutesForGateway  " <<gateway<<std::endl;
 
   if (foundInMain)
   {
@@ -891,7 +892,8 @@ RoutingTable::InvalidateRoutesForInterface (uint32_t interface,  Time invalidate
   foundInMain = FindRoutesForInterface (interface, routesInMain, eslr::MAIN);
   foundInBackup = FindRoutesForInterface (interface, routesInBackup, eslr::BACKUP);
 
-std::cout << int (m_nodeId) <<"InvalidateRoutesForInterface  " <<std::endl;
+      if (m_nodeId  == 3)
+      std::cout << "InvalidateRoutesForInterface  " <<std::endl;
 
   if (foundInMain)
   {
@@ -935,7 +937,8 @@ RoutingTable::InvalidateBrokenRoute (Ipv4Address destAddress, Ipv4Mask destMask,
   RoutingTable::RoutesI foundRoute;
   bool found = FindRouteRecord (destAddress, destMask, gateway, foundRoute, table);
 
-std::cout << int (m_nodeId) <<"InvalidateBrokenRoute  " <<std::endl;
+      if (m_nodeId  == 3)
+      std::cout << "InvalidateBrokenRoute  " <<std::endl;
   if (found)
   {
     if (table == eslr::BACKUP && (foundRoute->first->GetRouteType () == eslr::PRIMARY))

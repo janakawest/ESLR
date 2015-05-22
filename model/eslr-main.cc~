@@ -1269,7 +1269,7 @@ EslrRoutingProtocol::HandleRouteResponses (ESLRRoutingHeader hdr, Ipv4Address se
         // To do: check the logic
         if ((it->GetSequenceNo () >= primaryRoute->first->GetSequenceNo ()))
         {
-          if (primaryRoute->first->GetGateway () == senderAddress)
+          if ((primaryRoute->first->GetGateway () == senderAddress) && (it->GetMatric () <= mainRoute->first->GetMetric ()))
           {
             // Update the PRIMARY route if the cost is smaller than that of the main route.
             // Nevertheless, at the time Main route expires, 
