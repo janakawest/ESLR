@@ -219,8 +219,14 @@ main (int argc, char *argv[])
   apps.Start (Seconds (40.0));
 	apps.Stop (Seconds (420.0));
 
-//      Simulator::Schedule (Seconds (400), &MakeLinkDown, b, d, 3, 2); 
-//      Simulator::Schedule (Seconds (1850), &MakeLinkUp, b, d, 3, 2); 
+      Simulator::Schedule (Seconds (400), &MakeLinkDown, b, d, 3, 2); 
+      Simulator::Schedule (Seconds (550), &MakeLinkUp, b, d, 3, 2);
+      
+      Simulator::Schedule (Seconds (410), &MakeLinkDown, b, c, 2, 2); 
+      Simulator::Schedule (Seconds (550), &MakeLinkUp, b, c, 2, 2); 
+      
+      Simulator::Schedule (Seconds (420), &MakeLinkDown, b, a, 1, 2); 
+      Simulator::Schedule (Seconds (550), &MakeLinkUp, b, a, 1, 2);  
 
 //      Simulator::Schedule (Seconds (40), &MakeInterfaceDown, b, 3); 
 //      Simulator::Schedule (Seconds (185), &MakeInterfaceUp, b, 3); 

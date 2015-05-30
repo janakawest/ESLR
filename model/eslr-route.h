@@ -223,10 +223,10 @@ public:
   /// Container for an instance of the neighbor table
   typedef std::list<std::pair <RoutingTableEntry*, EventId> > RoutingTableInstance;
 
-  /// Iterator for the Neighbor table entry container
+  /// Iterator for the Route table entry container
   typedef std::list<std::pair <RoutingTableEntry*, EventId> >::iterator RoutesI;
 
-  /// Constant Iterator for the Neighbor table entry container
+  /// Constant Iterator for the Route table entry container
   typedef std::list<std::pair <RoutingTableEntry*, EventId> >::const_iterator RoutesCI;
 
   /// Parameters that are needed to call the InvalidateRoutes method
@@ -338,7 +338,7 @@ public:
   * \returns true and the currosponding route record if success  
   */
   bool FindValidRouteRecord (Ipv4Address destination, Ipv4Mask netMask, RoutesI &retRoutingTableEntry, eslr::Table table);
-
+  RoutingTable::RoutesI FindValidRouteRecord_1 (Ipv4Address destination, Ipv4Mask netMask, Ipv4Address gateway, bool &found, eslr::Table table);
   /**
   * \brief Find a route for the given interface in the main table and return it if exist.
   * \param interface interface that referes
@@ -365,7 +365,7 @@ public:
   * \returns true and the currosponding route record if success  
   */
   bool FindRouteInBackup (Ipv4Address destination, Ipv4Mask netMask, RoutesI &retRoutingTableEntry, eslr::RouteType routeType);
-
+  RoutingTable::RoutesI FindRouteInBackup_1 (Ipv4Address destination, Ipv4Mask netMask, bool &found, eslr::RouteType routeType);
   /**
   * \brief check and return if local route presents in the Main routing table.
   * \param destination find for the destination
@@ -407,8 +407,9 @@ public:
    * \param invalidateTime the invalidate time
    * \param deleteTime garbage collection time
    * \param settlingTime time route has to wait at the backup routing tbale before it moves to the Main
+   * \param table the table to be reffered to find the routes.   
    */
-  void InvalidateRoutesForGateway (Ipv4Address gateway,  Time invalidateTime, Time deleteTime, Time settlingTime);
+  void InvalidateRoutesForGateway (Ipv4Address gateway,  Time invalidateTime, Time deleteTime, Time settlingTime, eslr::Table table);
 
   /**
    * \brief Invalidate the routes realated to one interface.
@@ -417,8 +418,9 @@ public:
    * \param invalidateTime the invalidate time
    * \param deleteTime garbage collection time
    * \param settlingTime time route has to wait at the backup routing tbale before it moves to the Main
+   * \param table the table to be reffered to find the routes.
    */
-  void InvalidateRoutesForInterface (uint32_t interface,  Time invalidateTime, Time deleteTime, Time settlingTime);
+  void InvalidateRoutesForInterface (uint32_t interface,  Time invalidateTime, Time deleteTime, Time settlingTime, eslr::Table table);
 
   /**
    * \brief Invalidate the routes .
@@ -455,8 +457,16 @@ public:
   * \param destination destination network
   * \param dev the reference netdevice
   * \param retRoutingTableEntry the returning routing table entry
+  * \returns true if a route found for the specified destination address
   */
-  void ReturnRoute (Ipv4Address destination, Ptr<NetDevice> dev, RoutesI &retRoutingTableEntry); 
+  bool ReturnRoute (Ipv4Address destination, Ptr<NetDevice> dev, RoutesI &retRoutingTableEntry); 
+  
+  /**
+  * \brief delete the secondary route in the backup database
+  * \param destination destination network
+  * \param mask mask of the destination
+  */  
+  void DeleteSecondaryRoute (Ipv4Address destination, Ipv4Mask mask);
 
 	void DoDispose ()
 	{

@@ -234,9 +234,10 @@ public:
   /**
   * \brief Delete a neighbor record from the neighbor table after NbrRemove secondes exceeds
   * \param neighborEntry neighbor details   
+  * \param routingTable a routing table instance
   * \returns true if success  
   */
-  bool DeleteNeighbor (NeighborTableEntry *neighborEntry);
+  bool DeleteNeighbor (NeighborTableEntry *neighborEntry, RoutingTable& routingTable);
 
   /**
   * \brief Invalidate a neighbor record after NbrTimeout seconds exceeedes

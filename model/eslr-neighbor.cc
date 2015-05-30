@@ -87,6 +87,7 @@ namespace eslr {
   {    
     NS_LOG_FUNCTION ("Added a new Neighbor " << neighborEntry->GetNeighborID());
 
+		//std::cout << "Add Neighbor neighbor " << neighborEntry->GetNeighborID () << ":" << neighborEntry->GetNeighborAddress () << std::endl;
     EventId invalidateEvent = Simulator::Schedule (invalidateTime, &NeighborTable::InvalidateNeighbor, this, neighborEntry, invalidateTime, deleteTime, routingTable);
     m_neighborTable.push_front(std::make_pair (neighborEntry,invalidateEvent));
 
@@ -138,13 +139,11 @@ namespace eslr {
       if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && (it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()))
       {
         NS_LOG_FUNCTION ("Invalidate route records that referes " << neighborEntry->GetNeighborID ());
- 
-        routingTable.InvalidateRoutesForGateway (neighborEntry->GetNeighborAddress (),  m_routeTimeoutDelay, m_routeSettlingDelay, m_routeSettlingDelay);
 
 				it->first->SetValidity (eslr::INVALID);
         if (it->second.IsRunning ())
           it->second.Cancel ();
-        it->second = Simulator::Schedule (deleteTime, &NeighborTable::DeleteNeighbor, this, it->first);
+        it->second = Simulator::Schedule (deleteTime, &NeighborTable::DeleteNeighbor, this, it->first, routingTable);
         retVal = true;
         break;
       }
@@ -158,7 +157,7 @@ namespace eslr {
   }
 
   bool 
-  NeighborTable::DeleteNeighbor (NeighborTableEntry *neighborEntry)
+  NeighborTable::DeleteNeighbor (NeighborTableEntry *neighborEntry, RoutingTable& routingTable)
   {
     NS_LOG_FUNCTION ("Delete the neighbor " << neighborEntry->GetNeighborID());
 
@@ -169,6 +168,15 @@ namespace eslr {
     {
       if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && (it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()))
       {
+        // Along with the deleting neighbor,
+        // invalidate all route records refering the neighbor as the gateway
+        routingTable.InvalidateRoutesForGateway (neighborEntry->GetNeighborAddress (),  
+                                                 m_routeTimeoutDelay, m_routeSettlingDelay,
+                                                 m_routeSettlingDelay, eslr::BACKUP);
+        routingTable.InvalidateRoutesForGateway (neighborEntry->GetNeighborAddress (),  
+                                                 m_routeTimeoutDelay, m_routeSettlingDelay,
+                                                 m_routeSettlingDelay,eslr::MAIN);
+                                                       
         delete neighborEntry;
         m_neighborTable.erase (it);
         retVal = true;
