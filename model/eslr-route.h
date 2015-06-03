@@ -298,7 +298,6 @@ public:
   * \param table indicate table type (main or backup) 
   * \returns true if success  
   */
-  //bool InvalidateRoute (RoutingTableEntry *routingTableEntry, Time invalidateTime, Time deleteTime, Time settlingTime, eslr::InvalidateType invalidateType, eslr::Table table);
   bool InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateParams param);
 
   /**
@@ -324,38 +323,31 @@ public:
   * \brief Find a VALID route in the main table and return it if exist.
   * \param destination find for the destination
   * \param netMask network mask of the destination
-  * \param gateway the gateway of the route
+  * \param retRoutingTableEntry the found routing table entry
   * \param table indicate table type (main or backup)   
   * \returns true and the currosponding route record if success  
   */
-  bool FindValidRouteRecord (Ipv4Address destination, Ipv4Mask netMask, Ipv4Address gateway, RoutesI &retRoutingTableEntry, eslr::Table table);
+  bool FindValidRouteRecord (Ipv4Address destination, Ipv4Mask netMask, RoutesI &retRoutingTableEntry, eslr::Table table);
 
   /**
   * \brief Find a VALID route in the main table and return it if exist.
   * \param destination find for the destination
   * \param netMask network mask of the destination
+  * \param found returns true if a route found
   * \param table indicate table type (main or backup)   
-  * \returns true and the currosponding route record if success  
+  * \returns the Iterator for the route
   */
-  bool FindValidRouteRecord (Ipv4Address destination, Ipv4Mask netMask, RoutesI &retRoutingTableEntry, eslr::Table table);
-  RoutingTable::RoutesI FindValidRouteRecord_1 (Ipv4Address destination, Ipv4Mask netMask, Ipv4Address gateway, bool &found, eslr::Table table);
+RoutingTable::RoutesI FindValidRouteRecord_1 (RoutingTableEntry *route, bool &found, eslr::Table table);
+  
   /**
-  * \brief Find a route for the given interface in the main table and return it if exist.
-  * \param interface interface that referes
-  * \param matchedRouteEntries matched route records
+  * \brief Find a VALID route in the main table and return it if exist.
+  * \param destination find for the destination
+  * \param netMask network mask of the destination
+  * \param found returns true if a route found
   * \param table indicate table type (main or backup)   
-  * \returns true and the currosponding route record if success  
+  * \returns the Iterator for the route
   */
-  bool FindRoutesForInterface (uint32_t interface, RoutingTable::RoutingTableInstance &matchedRouteEntries, eslr::Table table);
-
-  /**
-  * \brief Find a VALID route for the given gateway in the main table and return it if exist.
-  * \param interface interface that referes
-  * \param matchedRouteEntries matched route records
-  * \param table indicate table type (main or backup)   
-  * \returns true and the currosponding route record if success  
-  */
-  bool FindRoutesForGateway (Ipv4Address gateway, RoutingTable::RoutingTableInstance &matchedRouteEntries, eslr::Table table);
+RoutingTable::RoutesI FindValidRouteRecord_2 (Ipv4Address destination, Ipv4Mask netMask, Ipv4Address gateway, bool &found, eslr::Table table);
 
   /**
   * \brief Find a VALID secondary (backup )route for the given gateway in the backup table and return.
@@ -365,6 +357,15 @@ public:
   * \returns true and the currosponding route record if success  
   */
   bool FindRouteInBackup (Ipv4Address destination, Ipv4Mask netMask, RoutesI &retRoutingTableEntry, eslr::RouteType routeType);
+  
+  /**
+  * \brief Find a VALID secondary (backup )route for the given gateway in the backup table and return.
+  * \param destination find for the destination
+  * \param netMask network mask of the destination 
+  * \param found returns if found 
+  * \param routeType the routes type: PRIMARY, SECONDARY
+  * \returns the route record if found 
+  */  
   RoutingTable::RoutesI FindRouteInBackup_1 (Ipv4Address destination, Ipv4Mask netMask, bool &found, eslr::RouteType routeType);
   /**
   * \brief check and return if local route presents in the Main routing table.
@@ -460,13 +461,6 @@ public:
   * \returns true if a route found for the specified destination address
   */
   bool ReturnRoute (Ipv4Address destination, Ptr<NetDevice> dev, RoutesI &retRoutingTableEntry); 
-  
-  /**
-  * \brief delete the secondary route in the backup database
-  * \param destination destination network
-  * \param mask mask of the destination
-  */  
-  void DeleteSecondaryRoute (Ipv4Address destination, Ipv4Mask mask);
 
 	void DoDispose ()
 	{

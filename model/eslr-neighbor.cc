@@ -171,10 +171,10 @@ namespace eslr {
         // Along with the deleting neighbor,
         // invalidate all route records refering the neighbor as the gateway
         routingTable.InvalidateRoutesForGateway (neighborEntry->GetNeighborAddress (),  
-                                                 m_routeTimeoutDelay, m_routeSettlingDelay,
+                                                 m_routeTimeoutDelay, m_routeGarbageCollectionDelay,
                                                  m_routeSettlingDelay, eslr::BACKUP);
         routingTable.InvalidateRoutesForGateway (neighborEntry->GetNeighborAddress (),  
-                                                 m_routeTimeoutDelay, m_routeSettlingDelay,
+                                                 m_routeTimeoutDelay, m_routeGarbageCollectionDelay,
                                                  m_routeSettlingDelay,eslr::MAIN);
                                                        
         delete neighborEntry;

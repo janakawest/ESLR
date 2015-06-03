@@ -1214,8 +1214,6 @@ EslrRoutingProtocol::HandleRouteResponses (ESLRRoutingHeader hdr, Ipv4Address se
     {   
       
       NS_LOG_DEBUG ("ESLR: Invalidating all unresponsive and broken routes.");
-  
-      std::cout << int (m_nodeId) << " " << Simulator::Now ().GetSeconds () << " has to invalidate " << it->GetDestAddress () << " --> " << senderAddress << std::endl; 
       
       bool invalidatedInBakcup = InvalidateBrokenRoute (it->GetDestAddress (), 
                                                         it->GetDestMask (), 
@@ -1248,6 +1246,7 @@ EslrRoutingProtocol::HandleRouteResponses (ESLRRoutingHeader hdr, Ipv4Address se
       // cost is in the form of microseconds.     
       
       uint32_t lrCost = CalculateLRCost (m_ipv4->GetNetDevice (incomingInterface));
+			//uint32_t lrCost = m_rng->GetValue (2.0, 5.0); 
       uint32_t slrCost = it->GetMatric () + lrCost;
 
       RoutingTable::RoutesI primaryRoute, secondaryRoute, mainRoute;
@@ -1788,7 +1787,7 @@ EslrRoutingProtocol::GetLinkDetails (Ptr<NetDevice> dev, double &transDelay, dou
   Ptr<Node> node = m_ipv4->GetObject<Node> ();
   
   double linkBandwidth = 0.0, availableBW = 0.0;  
-  uint32_t totalBitsInLink;
+  uint32_t totalBitsInLink = 0, previousValue = 0, tempValue = 0;
     
   // Get Channel Attributes
   StringValue getDelay, getBW;
@@ -1818,8 +1817,16 @@ EslrRoutingProtocol::GetLinkDetails (Ptr<NetDevice> dev, double &transDelay, dou
                         8);    
   } 
   
+  // calculate link occupancy.
+  // However, this calculation is bit ambiguity. Has to be fixed.
+  // To do
+  tempValue = totalBitsInLink - previousValue;
+  previousValue = totalBitsInLink;
+  
+  if (tempValue < 0)
+    tempValue = 0;
   // Available bandwidth of the link 
-  availableBW = linkBandwidth - totalBitsInLink;
+  availableBW = linkBandwidth - tempValue;
   
   //based on the avilable bandwidth, the packet propagation time
   propagationDelay = (node->GetAveragePacketSizeOfDevice (dev) * 8) / availableBW;;  
