@@ -2,8 +2,6 @@
 
 def build(bld):
     obj = bld.create_ns3_program('eslr-example', ['eslr', 'netanim', 'point-to-point', 'internet', 'network', 'applications'])
-    obj.source = 'eslr-example.cc'
-
     obj = bld.create_ns3_program('eslr-wide', ['eslr', 'netanim', 'point-to-point', 'internet', 'network', 'applications'])
-    obj.source = 'eslr-wide.cc'    
+    obj.source = 'eslr-example.cc'
 

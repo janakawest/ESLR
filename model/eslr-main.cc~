@@ -1277,7 +1277,7 @@ EslrRoutingProtocol::HandleRouteResponses (ESLRRoutingHeader hdr, Ipv4Address se
         // 2 seconds.
         if (m_nextTriggeredUpdate.IsRunning ())
           m_nextTriggeredUpdate.Cancel ();
-        m_nextTriggeredUpdate = Simulator::Schedule (MicroSeconds (2.2), &EslrRoutingProtocol::DoSendRouteUpdate, 
+        m_nextTriggeredUpdate = Simulator::Schedule (Seconds (2.2), &EslrRoutingProtocol::DoSendRouteUpdate, 
                                                this, eslr::TRIGGERED);          
         //SendTriggeredRouteUpdate ();
       }

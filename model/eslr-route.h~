@@ -389,11 +389,12 @@ RoutingTable::RoutesI FindValidRouteRecord_2 (Ipv4Address destination, Ipv4Mask 
   /**
    * \brief the localy connected route. 
    * this is only needed to update directly connected server's cost. 
-   * To restrict many modifications, this method is only consider metric.
-   * you have to note that, irrespective the cost, the record will be updated. 
-   * \param destination the server's IP address
-   * \param netMask the network mask of the server
-   * \param metric the server's cost
+   * To rescrict many modifications, this method is only consider metric.
+   * \param destination the server's '
+   * \param invalidateTime the invalidate time
+   * \param deleteTime garbage collection time
+   * \param settlingTime time route has to wait at the backup routing tbale before it moves to the Main
+   * \param table indicate table type (main or backup)
    */
   void UpdateLocalRoute (Ipv4Address destination, Ipv4Mask netMask, uint32_t metric);
 

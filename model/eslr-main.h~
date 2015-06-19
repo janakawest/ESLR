@@ -137,7 +137,7 @@ private:
   /**
    * \brief Handle server advertisement messages
    *
-   * \param hdr message header (including SRCs)
+   * \param kam Keep Alive Message header (including KAMs)
    * \param senderAddress sender address
    * \param incomingInterface incoming interface
    */  

@@ -710,7 +710,6 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
 			else
 			{
         NS_LOG_DEBUG ("Routes are broken and no backup routes found. Deleting both main and primary routes!.");
-          std::cout << "delete" << std::endl;         
 
         Time delay = param.deleteTime + Seconds (m_rng->GetValue (0.0, 5.0));
         

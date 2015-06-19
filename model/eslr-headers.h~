@@ -399,44 +399,44 @@ public:
    */
   virtual uint32_t Deserialize (Buffer::Iterator start);
 
-//  /**
-//   * \brief Get and Set Sequence Number.
-//   * \param sequenceNumber is the sequence number
-//   * \return the sequence number
-//   */
-//	void SetSequenceNo (uint16_t sequenceNumber)
-//	{
-//    m_sequenceNumber = sequenceNumber;
-//	}
-//	uint16_t GetSequenceNo () const
-//	{
-//    return m_sequenceNumber;
-//	}
+  /**
+   * \brief Get and Set Sequence Number.
+   * \param sequenceNumber is the sequence number
+   * \return the sequence number
+   */
+	void SetSequenceNo (uint16_t sequenceNumber)
+	{
+    m_sequenceNumber = sequenceNumber;
+	}
+	uint16_t GetSequenceNo () const
+	{
+    return m_sequenceNumber;
+	}
 
-//  /**
-//   * \brief Get and Set Rho value.
-//   * \param rho is the rho value
-//   * \return the rho value
-//   */
-//	void SetRho (uint16_t rho)
-//	{
-//    m_rho = rho;
-//	}
-//	uint16_t GetRho () const
-//	{
-//    return m_rho;
-//	}
+  /**
+   * \brief Get and Set Rho value.
+   * \param rho is the rho value
+   * \return the rho value
+   */
+	void SetRho (uint16_t rho)
+	{
+    m_rho = rho;
+	}
+	uint16_t GetRho () const
+	{
+    return m_rho;
+	}
 
   /**
    * \brief Get and Set Mue value.
    * \param mue is the rho value
    * \return the mue value
    */
-	void SetMue (uint32_t mue)
+	void SetMue (uint16_t mue)
 	{
     m_mue = mue;
 	}
-	uint32_t GetMue () const
+	uint16_t GetMue () const
 	{
     return m_mue;
 	}
@@ -446,11 +446,11 @@ public:
    * \param lambda is the rho value
    * \return the mue lambda
    */
-	void SetLambda (uint32_t lambda)
+	void SetLambda (uint16_t lambda)
 	{
     m_lambda = lambda;
 	}
-	uint32_t GetLambda () const
+	uint16_t GetLambda () const
 	{
     return m_lambda;
 	}
@@ -484,10 +484,10 @@ public:
 	}
 
 private:
-//  uint16_t m_sequenceNumber;  //!< sequence number
-//  uint16_t m_rho;  //!< Rho value (the server's utilization)
-  uint32_t m_mue;  //!< Mue value (the server's average service rate)
-  uint32_t m_lambda;  //!< Lambda value (the server's average packet arrival rate)
+  uint16_t m_sequenceNumber;  //!< sequence number
+  uint16_t m_rho;  //!< Rho value (the server's utilization)
+  uint16_t m_mue;  //!< Mue value (the server's average service rate)
+  uint16_t m_lambda;  //!< Lambda value (the server's average packet arrival rate)
   Ipv4Address m_serverAddress;  //!< server address
   Ipv4Mask m_netMask;  //!< net mask
 };// end of class ServerRouteComHeader

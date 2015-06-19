@@ -121,9 +121,8 @@ enum UpdateType
 enum InvalidateType
 {
   EXPIRE = 0x01, //!< Invaludate a route due to expiration of the route
-  BROKEN = 0x02, //!< Invaludate a route due to broken destination 
-  BROKEN_NEIGHBOR = 0x03, //!< Invalidate a route due to unresponsive neighbor
-  BROKEN_INTERFACE = 0x04, //!< Invalidate a route due to unresponsive interface
+  BROKEN = 0x02, //!< Invaludate a route due to broken link, broken route, or shutdown interface
+  BROKEN_NEIGHBOR = 0x03, //!< 
 };
 
 /**

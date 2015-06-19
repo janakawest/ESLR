@@ -195,7 +195,7 @@ TypeId SRCHeader::GetInstanceTypeId (void) const
 void 
 SRCHeader::Print (std::ostream & os) const
 {
-  os << "Server Address " <<  m_serverAddress << "/" << m_netMask << " Lambda " << int (m_lambda)  << " Mue "<< int (m_mue) << std::endl;
+  os << "Server Address " <<  m_serverAddress << "/" << m_netMask << " Matric " << int (m_rho)  << " Sequence Number "<< int (m_sequenceNumber) << std::endl;
 }
 
 uint32_t 
