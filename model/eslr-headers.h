@@ -90,8 +90,8 @@ public:
 
   /**
    * \brief Get and Set the Sequence number.
-   * \param SequenceNumber
-   * \return the sequenceNumber
+   * \param Sequence-number
+   * \return the sequence-number
    */
   uint16_t GetSequenceNo () const
   {
@@ -146,8 +146,8 @@ public:
 
   /**
    * \brief Get and Set the Network Mask
-   * \param mask the netmask of the destiunation
-   * \return the the netmask of the destiunation
+   * \param mask the net-mask of the destination
+   * \return the the net-mask of the destination
    */
 	void SetDestMask (Ipv4Mask mask)
 	{
@@ -159,21 +159,11 @@ public:
     return m_mask;
 	}
 
-// /**
-//   * \brief Get the prefix length of the mask.
-//   * \return the route tag value
-//   */
-//  uint8_t GetPrefixLength () const
-//  {
-//    return m_prefixLength;
-//  }
-
 
 private:
   uint16_t m_sequenceNumber; //!< sequence number
   uint32_t m_matric; //!< metric (time to reach the destination)
   uint16_t m_routeTag; //!< route tag
-//  uint8_t m_prefixLength; //!< mask length
   Ipv4Address m_destination; //!< destination network/host address
   Ipv4Mask m_mask; //!< destination network/host mask
   
@@ -286,7 +276,7 @@ public:
 	}
 
   /**
-   * \brief Get and Set Neghbor's ID'.
+   * \brief Get and Set neghbor's ID'.
    * \param neighborID the nieghbor's ID
    * \return the nieghbor's ID
    */
@@ -333,7 +323,7 @@ private:
   uint16_t m_authData;  //!< authentication data
   uint32_t m_neighborID;  //!< neighbor's ID
   Ipv4Address m_gateway;  //!< neighbor's address
-  Ipv4Mask m_gatewayMask;  //!< nieghbor's network mask
+  Ipv4Mask m_gatewayMask;  //!< neighbor's network mask
 };// end of class KeepAliveMessageHeader
 /**
  * \brief Stream insertion operator.
@@ -352,7 +342,7 @@ std::ostream & operator << (std::ostream & os, const KAMHeader & h);
 	* |      0        |      1        |      2        |      3      |
 	* 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
 	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |				                       Mue                    		    | // * |Seq#|Rho|
+	* |				                       Mue                    		    | 
 	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 	* |                             Lambda                          |
 	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -398,34 +388,6 @@ public:
    * \return size of the packet
    */
   virtual uint32_t Deserialize (Buffer::Iterator start);
-
-//  /**
-//   * \brief Get and Set Sequence Number.
-//   * \param sequenceNumber is the sequence number
-//   * \return the sequence number
-//   */
-//	void SetSequenceNo (uint16_t sequenceNumber)
-//	{
-//    m_sequenceNumber = sequenceNumber;
-//	}
-//	uint16_t GetSequenceNo () const
-//	{
-//    return m_sequenceNumber;
-//	}
-
-//  /**
-//   * \brief Get and Set Rho value.
-//   * \param rho is the rho value
-//   * \return the rho value
-//   */
-//	void SetRho (uint16_t rho)
-//	{
-//    m_rho = rho;
-//	}
-//	uint16_t GetRho () const
-//	{
-//    return m_rho;
-//	}
 
   /**
    * \brief Get and Set Mue value.
@@ -484,8 +446,6 @@ public:
 	}
 
 private:
-//  uint16_t m_sequenceNumber;  //!< sequence number
-//  uint16_t m_rho;  //!< Rho value (the server's utilization)
   uint32_t m_mue;  //!< Mue value (the server's average service rate)
   uint32_t m_lambda;  //!< Lambda value (the server's average packet arrival rate)
   Ipv4Address m_serverAddress;  //!< server address
@@ -584,7 +544,7 @@ public:
 
   /**
    * \brief Get and Set the Routing Table Request Type.
-   * \param reqType represent the packet reqeuting type
+   * \param reqType represent the packet requesting type
    * \return the request type
    */
   eslr::EslrHeaderRequestType GetRoutingTableRequestType () const

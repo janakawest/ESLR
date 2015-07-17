@@ -28,22 +28,22 @@ namespace eslr {
  * Header sizes of the ESLR Protocol
  */
 
-  #define RUM_SIZE 16 //!< Route Update Message Size
-  #define KAM_SIZE 16 //!< Keel Alive Message Header Size
-  #define SRC_SIZE 16 //!< Server Route Communication Message Header Size
+  #define RUM_SIZE 16 //!< Route Update Message (RUM) Size
+  #define KAM_SIZE 16 //!< Keep-alive Message (KAM) Size
+  #define SRC_SIZE 16 //!< Server-router Communication (SRC) Size
   #define ESLR_BASE_SIZE 7 //!< ESLR Header Base Size
 
 /**
- * Authentication types that are used in route management
+ * Authentication types used in route management
  */
   enum AuthType {
-    PLAIN_TEXT = 0x01, //!< AUTHENTICATION DATA IS SEND as PLAINTEXT
-    MD5 = 0x02, //!< AUTHENTICATION DATA USED as MD5 HASH
-    SHA = 0x03, //!< AUTHENTICATION DATA USED as SHA HASH
+    PLAIN_TEXT = 0x01, //!< Auth data send as PLAIN-TEXT
+    MD5 = 0x02, //!< Auth data send as MD5 HASH
+    SHA = 0x03, //!< Auth data send as SHA HASH
   };
 
 /**
- * Commands to be used in KAM Header
+ * Commands used in KAM Header
  */
   enum KamHeaderCommand
   {
@@ -52,7 +52,7 @@ namespace eslr {
   };
 
 /**
- * Commands to be used in ESLR Routing Header
+ * Commands used in ESLR Routing Header
  */
   enum EslrHeaderCommand
   {
@@ -62,25 +62,25 @@ namespace eslr {
   };
 
 /**
- * Commands to be used in Route Update Type (RU-Type)
+ * Commands used in Route Update Type (RU-Type)
  */
   enum EslrHeaderRUCommand
   {
-    NO = 0x00, //!< not specified. This is set when ESLR header carries KAM and SRC messages
+    NO = 0x00, //!< No. This is set when ESLR header carries KAM and SRC messages
     REQUEST = 0x01, //!< ESLR request message
     RESPONSE = 0x02, //!< ESLR response message
   };
 
 /**
- * The request type
+ * The request types
  */
   enum EslrHeaderRequestType
   {
-    NON = 0x00, //!< Non is requesting. This is set when ESLR header used to send KAM and SRC messages
-    OE = 0x01, //!< Only one Entry 
+    NON = 0x00, //!< No request. This is set when ESLR header used to send KAM and SRC messages
+    OE = 0x01, //!< One Entry 
     NE = 0x02, //!< Number of Entries specified in the ESLRRoutingHeader::NoE
     ET = 0x03, //!< Entire Table
-    RESPOND = 0xff, //!< For all respond messages
+    RESPOND = 0xff, //!< For all response messages
   };
 
 /**
@@ -88,10 +88,10 @@ namespace eslr {
  */
 enum Validity
 {
-  INVALID = 0x00, //!< Invalid Neighbor or Route Tecord
+  INVALID = 0x00, //!< Invalid Neighbor or Route Record
   VALID = 0x01, //!< Valid Neighbor or Route Record
   DISCONNECTED = 0x02, //!< Disconnected Route Record
-  LHOST = 0x03, //!< Host route for the loopback interface. This is not used for route advertisements
+  LHOST = 0x03, //!< Host route for the loop-back interface. This is not used for route advertisements
 };
 
 /**
@@ -99,12 +99,12 @@ enum Validity
   */
 enum RouteType
 {
-  PRIMARY = 0x01, //!< Record is added to the Primary Table
-  SECONDARY = 0x02, //!< Record is in the Secondery Table
+  PRIMARY = 0x01, //!< Record is added to the Main Table
+  SECONDARY = 0x02, //!< Record is in the Backup Table
 };
 
 /**
-  * Indicate whether the route record is presented in Main Table and Backup Table 
+  * The Main Table and Backup Table 
   */
 enum Table
 {
@@ -112,16 +112,22 @@ enum Table
   BACKUP = 0x02, //!< Record is in the Secondery Table
 };
 
+/**
+  * Update type 
+  */
 enum UpdateType
 {
   PERIODIC = 0x01, //!< ESLR Periodic Update
   TRIGGERED = 0x02, //!< ESLR Triggered Update
 };
 
+/**
+  * Invalidation type
+  */
 enum InvalidateType
 {
-  EXPIRE = 0x01, //!< Invaludate a route due to expiration of the route
-  BROKEN = 0x02, //!< Invaludate a route due to broken destination 
+  EXPIRE = 0x01, //!< Invalidate a route due to expiration of the route
+  BROKEN = 0x02, //!< Invalidate a route due to broken destination 
   BROKEN_NEIGHBOR = 0x03, //!< Invalidate a route due to unresponsive neighbor
   BROKEN_INTERFACE = 0x04, //!< Invalidate a route due to unresponsive interface
 };
@@ -130,7 +136,7 @@ enum InvalidateType
  * Split Horizon strategy type.
  */
 enum SplitHorizonType {
-  NO_SPLIT_HORIZON,//!< No Split Horizon
+  NO_SPLIT_HORIZON, //!< No Split Horizon
   SPLIT_HORIZON,   //!< Split Horizon
 };
 

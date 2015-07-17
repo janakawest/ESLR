@@ -57,7 +57,7 @@ public:
   /**
    * \brief Constructor
    * \param network network address
-   * \param networkMask network mask of the given destination netowork
+   * \param networkMask network mask of the given destination network
    * \param nextHop next hop address to route the packet
    * \param interface interface index
    */
@@ -69,7 +69,7 @@ public:
   /**
    * \brief Constructor
    * \param network network address
-   * \param networkMask network mask of the given destination netowork
+   * \param networkMask network mask of the given destination network
    * \param interface interface index
    */
   RoutingTableEntry (Ipv4Address network = Ipv4Address (), 
@@ -88,7 +88,7 @@ public:
 
   /**
   * \brief Get and Set Sequence Number of the route record
-  * \param sequenceNumber the sequence number of the reute record
+  * \param sequenceNumber the sequence number of the route record
   * \returns the sequence number of the route record
   */
 
@@ -103,8 +103,8 @@ public:
 
   /**
   * \brief Get and Set metric 
-  * the metric is the Avg. propagation time for the destination netowrk
-  * \param metric the metric of the reute record
+  * the metric is the Avg. propagation time for the destination network
+  * \param metric the metric of the route record
   * \returns the sequence number of the route record
   */
 
@@ -138,12 +138,12 @@ public:
 
   /**
   * \brief Get and Set the route's status 
-  * the route's validity is changed according to the expirationtime.
-  * all new routes are first added to the backup table with status eslr::VALID
-  * routes are then moved to the main table according to the cost and intially those are marked 
-  * as eslr::VALID routes are set as eslr::INVALID after expiration time expires
-  * unless the particular route record is updated or replaced by another best route
-  * all eslr::INVALID routes are deleted after the garbage collection time
+  * the route's validity is changed according to the state of the route and timers.
+  * Default, all routes are added to the corresponding table by setting as eslr::VALID.
+  * Routes will set as eslr::INVALID, if the expiration timer expires. 
+  * Further, routes will be set as eslr::DISCONNECTED, if the connected interface or the neighbor (gateway)
+  * is un-responsive.
+  * All invalidated and disconnected routes will be removed after a garbage collection time. 
   *
   * \param validity the status of the route
   * \returns the status of the route record
@@ -158,13 +158,12 @@ public:
   }
 
   /**
-  * \brief the route type of the route tecord
-  * all routes are in the main table indicate that those are eslr::PRIMARY
-  * as the backup routing table keeps two route records for a single destination, 
-  * one record will indicate that it is a eslr::PRIMARY record. That record is the record in the main table
-  * next record will indicate that it is a eslr::SECONDARY, which is the backup route.
-  * In case the main route invalidated, the backup route will move to the main table by setting eslr::VALID
-  * and eslr::PRIMARY. 
+  * \brief the route type of the route record
+  * All routes are in the main table are marked as eslr::PRIMARY
+  * Backup routing table maintains two route records for a single destination prifix,   
+  * The reference route, which is same as the primary route in the main table, also marked as eslr::Primary
+  * The other record, which has bit higher metric than the primary route, is marked as eslr::SECONDARY.
+  * In case the main route disconnected or invalidated, the backup route moves to the main table eslr::PRIMARY. 
   * 
   * \param routeType type of the route
   * \returns the type of the route record
@@ -198,7 +197,7 @@ private:
   uint32_t m_metric; //!< route metric
   bool m_changed; //!< route has been updated
   eslr::Validity m_validity; //!< validity of the routing record
-  eslr::RouteType m_routeType; //!< The route record's type (Primary or Secondery)
+  eslr::RouteType m_routeType; //!< The route record's type (Primary or Secondary)
   uint16_t m_routeTag; //!< route tag
 
 };// end of RouteTableEntry
@@ -242,11 +241,18 @@ public:
   ~RoutingTable ();
 
   /**
-   * \brief Add route for network to the main table.
-   * this method is used to add the reoute records that received to the router.
-   * first routes will be added to the backup table unless otherwise spesified.
-   * then after settling time expires, this method will again called by the backup table to add the route
-   * to the main table 
+   * \brief Add route for a network prefix.
+   * This method is used to add route records which are network routes.
+   * Initially, routes will be added to the backup table by specifying as eslr::SECONDARY, 
+   * unless otherwise specified. Routes will be added to the main table, after the settling time expires. 
+   * However, note that for the initial route, i.e., very first route, will be added to the both tables. 
+   * in that case, both routes will be marked as eslr::PRIMARY. 
+   *
+   * In the route update process, the main table will keep as untouched. 
+   * The modifications, based on the updates, are done to the eslr::PRIMARY records in the backup table. 
+   * Then, after settling time expires, those 
+   * changes will be updated to the corresponding route in the main table.
+   * 
    * \param routingTableEntry The routing table entry
    * \param invalidateTime the invalidate time
    * \param deleteTime garbage collection time
@@ -256,8 +262,10 @@ public:
   void AddRoute (RoutingTableEntry *routingTableEntry, Time invalidateTime, Time deleteTime, Time settingTime, eslr::Table table);
 
   /**
-   * \brief Move a route to the main table after settling time expires.
-   * then the corresponding route update will be updated as a reference to the main table
+   * \brief This method is used to move a route to the main table after settling time expires.
+   * In addition, this method is used to update an existing route record in the main table based on the 
+   * updated eslr:PRIMARY record in the backup table.
+   *
    * \param routingTableEntry The routing table entry
    * \param invalidateTime the invalidate time
    * \param deleteTime garbage collection time
@@ -266,7 +274,7 @@ public:
   void MoveToMain (RoutingTableEntry *routingTableEntry, Time invalidateTime, Time deleteTime, Time settlingTime);
 
   /**
-  * \brief Delete a routing record from the main routing table at the garbage collention
+  * \brief Delete a routing record.
   * \param routingTableEntry currosponding route record
   * \param table indicate table type (main or backup)
   * \returns true if success  
@@ -274,12 +282,13 @@ public:
   bool DeleteRoute (RoutingTableEntry *routingTableEntry, eslr::Table table);
 
   /**
-   * \brief Add host route for network to the main table.
-   * This method is used to add host routes: routes aboout local interfaces, and routers abour servers
-   * if the routes is about router's local interfaces, all timers are set to zeor. Such routes will directly
-   * add to the main table. They are not expirring.
-   * in case of a route aout a server, such routes are added to the backup table and execute the same 
-   * sequence executed in the AddRoute method.
+   * \brief Add host route for a destination network.
+   * This method is used to add host routes: routes about local interfaces, and routers about servers.
+   * If the route is about router's local interfaces, all timers are set to zero. Such routes will directly
+   * add to the main table.
+   * However, route about a servers will have to follow the same procedure: wait at the backup table
+   * until the settling time expires. 
+   *
    * \param routingTableEntry The routing table entry
    * \param invalidateTime the invalidate time
    * \param deleteTime garbage collection time
@@ -289,12 +298,43 @@ public:
   void AddHostRoute (RoutingTableEntry *routingTableEntry, Time invalidateTime, Time deleteTime, Time settingTime, eslr::Table table);
 
   /**
-  * \brief Invalidate a route record from the main table after Timeout seconds exceeedes
+  * \brief Invalidate a route record
+  * The invalidate method calls due to several reasons: 
+  * 1. Invalidate a route due to expiration event triggered (Routes are marked as eslr::INVALID).
+  * 2. Due to disconnection of link or the interface (Routes are marked as eslr::DISCONNECTED).
+  * 3. Due to unresponsive neighbors (Routes are marked as eslr::DISCONNECTED).
+  * 4. Due to unresponsive destination address (Routes are marked as eslr::DISCONNECTED).
+  *
+  * In the first case, if the expired route is in the main table, the main route will be then replaced by
+  * either primary or backup route in the backup table. If the backup route is stable and 
+  * its metric is shorter than that of the primary route, both main and primary routes will be replaced
+  * using the backup route. Note that the backup route will be removed from the backup routing table
+  * after this process. Otherwise, the main route will be updated according to the primary route.
+  *
+  * In the first case, if the expired route is in the backup table, by setting the router as eslr::INVALID,
+  * an event will be scheduled to remove the secondary route from the table. 
+  * Note that, as the primary routes are maintain accordance to the reference route in the main table, 
+  * such routes will not be invalidated.
+  *
+  * In both second and third case, if the expired route is in the main table, both main (in the main table) 
+  * and the eslr::PRIMARY (in the backup table) will be replaced by the secondary route (if a one found).
+  * Otherwise, both records will set as eslr::DISCONNECTED and set an event to delete after the 
+  * garbage collection time.
+  *
+  * In both second and third case, if the expired route is in the backup table, 
+  * by setting the router as eslr::DISCONNECTED,an event will be scheduled to 
+  * remove the secondary route from the table.
+  *
+  * In the fourth case, if the expired route is in the main table, both main (in the main table) 
+  * and the eslr::PRIMARY (in the backup table) will set as eslr::DISCONNECTED and set 
+  * an event to delete after the garbage collection time. 
+  * Same will be done to the routes, i.e., eslr::SECONDARY, in the backup table. 
+  *
   * \param routingTableEntry currosponding route record
   * \param invalidateTime the invalidate time
   * \param deleteTime garbage collection delay  
-  * \param settlingTime time route has to wait at the backup routing tbale before it moves to the Main
-  * \param InvalidateType the parameter indicate the reason for invalidate the route (e.g, broken route, expired route)
+  * \param settlingTime time route has to wait at the backup routing table before it moves to the Main
+  * \param InvalidateType indicate the reason for invalidate the route (e.g, broken route, expired route)
   * \param table indicate table type (main or backup) 
   * \returns true if success  
   */
@@ -306,7 +346,7 @@ public:
   * \param netMask network mask of the destination
   * \param gateway the gateway of the route
   * \param table indicate table type (main or backup)   
-  * \returns true and the currosponding route record if success  
+  * \returns true and the corresponding route record if success  
   */
   bool FindRouteRecord (Ipv4Address destination, Ipv4Mask netMask, Ipv4Address gateway, RoutesI &retRoutingTableEntry, eslr::Table table);
 
@@ -331,42 +371,43 @@ public:
 
   /**
   * \brief Find a VALID route in the main table and return it if exist.
-  * \param destination find for the destination
+  * \param route the route to be checked
   * \param netMask network mask of the destination
   * \param found returns true if a route found
   * \param table indicate table type (main or backup)   
   * \returns the Iterator for the route
   */
-RoutingTable::RoutesI FindValidRouteRecord_1 (RoutingTableEntry *route, bool &found, eslr::Table table);
+  RoutingTable::RoutesI FindGivenRouteRecord (RoutingTableEntry *route, bool &found, eslr::Table table);
   
   /**
-  * \brief Find a VALID route in the main table and return it if exist.
+  * \brief Find a VALID route in the main table for a given destination address and return it if exist.
   * \param destination find for the destination
   * \param netMask network mask of the destination
   * \param found returns true if a route found
   * \param table indicate table type (main or backup)   
   * \returns the Iterator for the route
   */
-RoutingTable::RoutesI FindValidRouteRecord_2 (Ipv4Address destination, Ipv4Mask netMask, Ipv4Address gateway, bool &found, eslr::Table table);
+  RoutingTable::RoutesI FindValidRouteRecordForDestination (Ipv4Address destination, Ipv4Mask netMask, Ipv4Address gateway, bool &found, eslr::Table table);
 
   /**
-  * \brief Find a VALID secondary (backup )route for the given gateway in the backup table and return.
+  * \brief Find a VALID secondary (backup) route for the given gateway in the backup table and return.
   * \param destination find for the destination
   * \param netMask network mask of the destination  
   * \param routeType the routes type: PRIMARY, SECONDARY
-  * \returns true and the currosponding route record if success  
+  * \returns true and the corresponding route record if success  
   */
   bool FindRouteInBackup (Ipv4Address destination, Ipv4Mask netMask, RoutesI &retRoutingTableEntry, eslr::RouteType routeType);
   
   /**
-  * \brief Find a VALID secondary (backup )route for the given gateway in the backup table and return.
+  * \brief Find a VALID secondary (backup) route for the given destination in the backup table and return.
   * \param destination find for the destination
   * \param netMask network mask of the destination 
   * \param found returns if found 
   * \param routeType the routes type: PRIMARY, SECONDARY
   * \returns the route record if found 
   */  
-  RoutingTable::RoutesI FindRouteInBackup_1 (Ipv4Address destination, Ipv4Mask netMask, bool &found, eslr::RouteType routeType);
+  RoutingTable::RoutesI FindRouteInBackupForDestination (Ipv4Address destination, Ipv4Mask netMask, bool &found, eslr::RouteType routeType);
+  
   /**
   * \brief check and return if local route presents in the Main routing table.
   * \param destination find for the destination
@@ -376,8 +417,21 @@ RoutingTable::RoutesI FindValidRouteRecord_2 (Ipv4Address destination, Ipv4Mask 
   bool IsLocalRouteAvailable (Ipv4Address destination, Ipv4Mask netMask);
 
   /**
-   * \brief update a route to network to the main table.
-   * this method is used to add the reoute records that received to the router
+   * \brief update a route.
+   * This method is used to update routes in both main and backup table.
+   * After processing of every RUM in the route advertisement message, this method is called
+   * to update the relevant route record.
+   *
+   * In case of the route record is the main route in the main table, 
+   * first ESLR checks any better and stable secondary route is available in the backup table. 
+   * If a secondary route found, both main and the corresponding eslr::PRIMARY record in the backup table
+   * are update based on the secondary route. Otherwise, the main route will be updated according to the
+   * routingTableEntry.
+   *
+   * However, in case of the route record is in the backup table, 
+   * the route record will be updated according to the routingTableEntry and the settling/expiration time
+   * will be set accordingly.  
+   * 
    * \param routingTableEntry The routing table entry
    * \param invalidateTime the invalidate time
    * \param deleteTime garbage collection time
@@ -387,10 +441,10 @@ RoutingTable::RoutesI FindValidRouteRecord_2 (Ipv4Address destination, Ipv4Mask 
   bool UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time invalidateTime, Time deleteTime, Time settlingTime, eslr::Table table);
 
   /**
-   * \brief the localy connected route. 
-   * this is only needed to update directly connected server's cost. 
-   * To restrict many modifications, this method is only consider metric.
-   * you have to note that, irrespective the cost, the record will be updated. 
+   * \brief update a locally connected networks. 
+   * this needed to update directly connected networks  (i.e., server's cost). 
+   * To restrict modifications, this method is only consider metric updates.
+   * Note that, irrespective of the value of the metric, the record will be updated. 
    * \param destination the server's IP address
    * \param netMask the network mask of the server
    * \param metric the server's cost
@@ -413,24 +467,23 @@ RoutingTable::RoutesI FindValidRouteRecord_2 (Ipv4Address destination, Ipv4Mask 
   void PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table table) const;
 
   /**
-   * \brief Invalidate the routes realated to one neighbor.
-   * this method is called by the neighbor module when an neighbor recored is invalidated
+   * \brief Invalidate the routes related to one neighbor.
+   * this method is called by the neighbor module when an neighbor record is invalidated
    * \param gateway the neighbor address
    * \param invalidateTime the invalidate time
    * \param deleteTime garbage collection time
-   * \param settlingTime time route has to wait at the backup routing tbale before it moves to the Main
-   * \param table the table to be reffered to find the routes.   
+   * \param settlingTime time route has to wait at the backup routing table before it moves to the Main
+   * \param table the table to be referred to find the routes.   
    */
   void InvalidateRoutesForGateway (Ipv4Address gateway,  Time invalidateTime, Time deleteTime, Time settlingTime, eslr::Table table);
 
   /**
-   * \brief Invalidate the routes realated to one interface.
-   * this method is called by the neighbor module when an neighbor recored is invalidated
+   * \brief Invalidate the routes related to one interface.
    * \param interface the interface address
    * \param invalidateTime the invalidate time
    * \param deleteTime garbage collection time
-   * \param settlingTime time route has to wait at the backup routing tbale before it moves to the Main
-   * \param table the table to be reffered to find the routes.
+   * \param settlingTime time route has to wait at the backup routing table before it moves to the Main
+   * \param table the table to be referred to find the routes.
    */
   void InvalidateRoutesForInterface (uint32_t interface,  Time invalidateTime, Time deleteTime, Time settlingTime, eslr::Table table);
 
@@ -439,10 +492,10 @@ RoutingTable::RoutesI FindValidRouteRecord_2 (Ipv4Address destination, Ipv4Mask 
    * this method is called by the main implementation of the ESLR. 
    * \param destAddress the destination address
    * \param destMask the destination's network mask
-   * \param gateway gateway that route shoud use to reach to the destination
+   * \param gateway gateway that route should use to reach to the destination
    * \param invalidateTime the invalidate time
    * \param deleteTime garbage collection time
-   * \param settlingTime time route has to wait at the backup routing tbale before it moves to the Main
+   * \param settlingTime time route has to wait at the backup routing table before it moves to the Main
    * \param table indicate table type (main or backup) 
    * \returns true if route is found and invalidated.
    */
@@ -465,9 +518,9 @@ RoutingTable::RoutesI FindValidRouteRecord_2 (Ipv4Address destination, Ipv4Mask 
   void ToggleRouteChanged ();
   
   /**
-  * \brief return a route to the given destination and the given netdevice
+  * \brief return a route to the given destination and the given net-device
   * \param destination destination network
-  * \param dev the reference netdevice
+  * \param dev the reference net-device
   * \param retRoutingTableEntry the returning routing table entry
   * \returns true if a route found for the specified destination address
   */

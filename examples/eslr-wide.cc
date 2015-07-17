@@ -443,86 +443,86 @@ main (int argc, char *argv[])
   apps.Start (Seconds (20.0));
 	apps.Stop (Seconds (350.0));
 	
-//	//create client2
-//	UdpEchoClientHelper client2 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
-//  client2.SetAttribute ("MaxPackets", UintegerValue (1000));
-//  client2.SetAttribute ("Id", UintegerValue (2));
-//  client2.SetAttribute ("PacketSize", UintegerValue (1024));
-//  apps = client2.Install (c2);  
-//  apps.Start (Seconds (20.0));
-//	apps.Stop (Seconds (350.0));	
-//	
-//	//create client3
-//	UdpEchoClientHelper client3 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
-//  client3.SetAttribute ("MaxPackets", UintegerValue (1000));
-//  client3.SetAttribute ("Id", UintegerValue (3));
-//  client3.SetAttribute ("PacketSize", UintegerValue (1024));
-//  apps = client3.Install (c3);  
-//  apps.Start (Seconds (20.0));
-//	apps.Stop (Seconds (350.0));
-//	
-//	//create client4
-//	UdpEchoClientHelper client4 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
-//  client4.SetAttribute ("MaxPackets", UintegerValue (1000));
-//  client4.SetAttribute ("Id", UintegerValue (4));
-//  client4.SetAttribute ("PacketSize", UintegerValue (1024));
-//  apps = client4.Install (c4);  
-//  apps.Start (Seconds (20.0));
-//	apps.Stop (Seconds (350.0));	
-//	
-//	//create client5
-//	UdpEchoClientHelper client5 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
-//  client5.SetAttribute ("MaxPackets", UintegerValue (1000));
-//  client5.SetAttribute ("Id", UintegerValue (5));
-//  client5.SetAttribute ("PacketSize", UintegerValue (1024));
-//  apps = client5.Install (c5);  
-//  apps.Start (Seconds (20.0));
-//	apps.Stop (Seconds (350.0));	
-//	
-//	//create client6
-//	UdpEchoClientHelper client6 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
-//  client6.SetAttribute ("MaxPackets", UintegerValue (1000));
-//  client6.SetAttribute ("Id", UintegerValue (6));
-//  client6.SetAttribute ("PacketSize", UintegerValue (1024));
-//  apps = client6.Install (c6);  
-//  apps.Start (Seconds (20.0));
-//	apps.Stop (Seconds (350.0));		
-//	
-//	//create client7
-//	UdpEchoClientHelper client7 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
-//  client7.SetAttribute ("MaxPackets", UintegerValue (1000));
-//  client7.SetAttribute ("Id", UintegerValue (7));
-//  client7.SetAttribute ("PacketSize", UintegerValue (1024));
-//  apps = client7.Install (c7);  
-//  apps.Start (Seconds (20.0));
-//	apps.Stop (Seconds (350.0));	
-//	
-//	//create client8
-//	UdpEchoClientHelper client8 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
-//  client8.SetAttribute ("MaxPackets", UintegerValue (1000));
-//  client8.SetAttribute ("Id", UintegerValue (8));
-//  client8.SetAttribute ("PacketSize", UintegerValue (1024));
-//  apps = client8.Install (c8);  
-//  apps.Start (Seconds (20.0));
-//	apps.Stop (Seconds (350.0));	
-//	
-//	//create client9
-//	UdpEchoClientHelper client9 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
-//  client9.SetAttribute ("MaxPackets", UintegerValue (1000));
-//  client9.SetAttribute ("Id", UintegerValue (9));
-//  client9.SetAttribute ("PacketSize", UintegerValue (1024));
-//  apps = client9.Install (c9);  
-//  apps.Start (Seconds (20.0));
-//	apps.Stop (Seconds (350.0));	
-//	
-//	//create client10
-//	UdpEchoClientHelper client10 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
-//  client10.SetAttribute ("MaxPackets", UintegerValue (1000));
-//  client10.SetAttribute ("Id", UintegerValue (10));
-//  client10.SetAttribute ("PacketSize", UintegerValue (1024));
-//  apps = client10.Install (c10);  
-//  apps.Start (Seconds (20.0));
-//	apps.Stop (Seconds (350.0));												
+	//create client2
+	UdpEchoClientHelper client2 (s2->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
+  client2.SetAttribute ("MaxPackets", UintegerValue (1000));
+  client2.SetAttribute ("Id", UintegerValue (2));
+  client2.SetAttribute ("PacketSize", UintegerValue (1024));
+  apps = client2.Install (c2);  
+  apps.Start (Seconds (20.0));
+	apps.Stop (Seconds (350.0));	
+	
+	//create client3
+	UdpEchoClientHelper client3 (s3->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
+  client3.SetAttribute ("MaxPackets", UintegerValue (1000));
+  client3.SetAttribute ("Id", UintegerValue (3));
+  client3.SetAttribute ("PacketSize", UintegerValue (1024));
+  apps = client3.Install (c3);  
+  apps.Start (Seconds (20.0));
+	apps.Stop (Seconds (350.0));
+	
+	//create client4
+	UdpEchoClientHelper client4 (s3->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
+  client4.SetAttribute ("MaxPackets", UintegerValue (1000));
+  client4.SetAttribute ("Id", UintegerValue (4));
+  client4.SetAttribute ("PacketSize", UintegerValue (1024));
+  apps = client4.Install (c4);  
+  apps.Start (Seconds (20.0));
+	apps.Stop (Seconds (350.0));	
+	
+	//create client5
+	UdpEchoClientHelper client5 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
+  client5.SetAttribute ("MaxPackets", UintegerValue (1000));
+  client5.SetAttribute ("Id", UintegerValue (5));
+  client5.SetAttribute ("PacketSize", UintegerValue (1024));
+  apps = client5.Install (c5);  
+  apps.Start (Seconds (20.0));
+	apps.Stop (Seconds (350.0));
+		
+	//create client6
+	UdpEchoClientHelper client6 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
+  client6.SetAttribute ("MaxPackets", UintegerValue (1000));
+  client6.SetAttribute ("Id", UintegerValue (6));
+  client6.SetAttribute ("PacketSize", UintegerValue (1024));
+  apps = client6.Install (c6);  
+  apps.Start (Seconds (20.0));
+	apps.Stop (Seconds (350.0));		
+	
+	//create client7
+	UdpEchoClientHelper client7 (s2->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
+  client7.SetAttribute ("MaxPackets", UintegerValue (1000));
+  client7.SetAttribute ("Id", UintegerValue (7));
+  client7.SetAttribute ("PacketSize", UintegerValue (1024));
+  apps = client7.Install (c7);  
+  apps.Start (Seconds (20.0));
+	apps.Stop (Seconds (350.0));	
+	
+	//create client8
+	UdpEchoClientHelper client8 (s2->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
+  client8.SetAttribute ("MaxPackets", UintegerValue (1000));
+  client8.SetAttribute ("Id", UintegerValue (8));
+  client8.SetAttribute ("PacketSize", UintegerValue (1024));
+  apps = client8.Install (c8);  
+  apps.Start (Seconds (20.0));
+	apps.Stop (Seconds (350.0));	
+	
+	//create client9
+	UdpEchoClientHelper client9 (s2->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
+  client9.SetAttribute ("MaxPackets", UintegerValue (1000));
+  client9.SetAttribute ("Id", UintegerValue (9));
+  client9.SetAttribute ("PacketSize", UintegerValue (1024));
+  apps = client9.Install (c9);  
+  apps.Start (Seconds (20.0));
+	apps.Stop (Seconds (350.0));	
+	
+	//create client10
+	UdpEchoClientHelper client10 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
+  client10.SetAttribute ("MaxPackets", UintegerValue (1000));
+  client10.SetAttribute ("Id", UintegerValue (10));
+  client10.SetAttribute ("PacketSize", UintegerValue (1024));
+  apps = client10.Install (c10); 
+	apps.Start (Seconds (20.0));
+	apps.Stop (Seconds (350.0));												
 	
   NS_LOG_INFO ("Enable Printing Options.");
   EslrHelper routingHelper;
@@ -530,18 +530,18 @@ main (int argc, char *argv[])
 
   if (MTable || NTable || BTable)
 	{
-		for (uint8_t num = 0; num < routers.GetN (); num ++)
-		{
-			routingHelper.PrintRoutingTableAt (Seconds (304), routers.Get (num), routingStream);
-			routingHelper.PrintRoutingTableAt (Seconds (350), routers.Get (num), routingStream);			
-			routingHelper.PrintRoutingTableAt (Seconds (450), routers.Get (num), routingStream);			
-			routingHelper.PrintRoutingTableAt (Seconds (552), routers.Get (num), routingStream);			
-		}
-//        routingHelper.PrintRoutingTableEvery (Seconds (50), fukuoka, routingStream);
+//		for (uint8_t num = 0; num < routers.GetN (); num ++)
+//		{
+//			routingHelper.PrintRoutingTableAt (Seconds (304), routers.Get (num), routingStream);
+//			routingHelper.PrintRoutingTableAt (Seconds (350), routers.Get (num), routingStream);			
+//			routingHelper.PrintRoutingTableAt (Seconds (450), routers.Get (num), routingStream);			
+//			routingHelper.PrintRoutingTableAt (Seconds (552), routers.Get (num), routingStream);			
+//		}
+        routingHelper.PrintRoutingTableEvery (Seconds (50), fukuoka, routingStream);
 	} 	
 
-//      Simulator::Schedule (Seconds (300), &MakeLinkDown, nttOtemachi, tsukuba, 3, 1); 
-//      Simulator::Schedule (Seconds (550), &MakeLinkUp, nttOtemachi, tsukuba, 3, 1);
+      Simulator::Schedule (Seconds (300), &MakeLinkDown, dojima, sakyo, 4, 2); 
+      Simulator::Schedule (Seconds (550), &MakeLinkUp, dojima, sakyo, 4, 2);
 //      
 //      Simulator::Schedule (Seconds (410), &MakeLinkDown, b, c, 2, 2); 
 //      Simulator::Schedule (Seconds (550), &MakeLinkUp, b, c, 2, 2); 

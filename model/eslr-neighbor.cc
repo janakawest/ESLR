@@ -31,9 +31,6 @@
 
 NS_LOG_COMPONENT_DEFINE ("ESLRNeighborTable");
 
-//#define NbrTimeout 90
-//#define NbrRemove 60
-
 namespace ns3 {
 namespace eslr {
 /* 
@@ -86,8 +83,7 @@ namespace eslr {
   NeighborTable::AddNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime, RoutingTable& routingTable, Time timeoutDelay, Time garbageCollectionDelay, Time settlingDelay)
   {    
     NS_LOG_FUNCTION ("Added a new Neighbor " << neighborEntry->GetNeighborID());
-
-		//std::cout << "Add Neighbor neighbor " << neighborEntry->GetNeighborID () << ":" << neighborEntry->GetNeighborAddress () << std::endl;
+    
     EventId invalidateEvent = Simulator::Schedule (invalidateTime, &NeighborTable::InvalidateNeighbor, this, neighborEntry, invalidateTime, deleteTime, routingTable);
     m_neighborTable.push_front(std::make_pair (neighborEntry,invalidateEvent));
 
@@ -108,7 +104,6 @@ namespace eslr {
     {
       if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && (it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()))
       {
-				//std::cout << "Update Neighbor neighbor " << it->first->GetNeighborID () << ":" << it->first->GetNeighborAddress () << std::endl;
         delete it->first;
         it->first = neighborEntry;
         it->second.Cancel ();
@@ -138,7 +133,7 @@ namespace eslr {
     {
       if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && (it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()))
       {
-        NS_LOG_FUNCTION ("Invalidate route records that referes " << neighborEntry->GetNeighborID ());
+        NS_LOG_FUNCTION ("Invalidate route records that refers " << neighborEntry->GetNeighborID ());
 
 				it->first->SetValidity (eslr::INVALID);
         if (it->second.IsRunning ())

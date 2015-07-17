@@ -44,12 +44,12 @@ public:
   //NeighborTableEntry (void);
   /**
   * \brief Constructor
-  * \param neighborID ID of the neighbor hashvalue of (AS + IF0's address, IF0's netmask)
+  * \param neighborID ID of the neighbor: hash value of (AS + IF0's address, IF0's net-mask)
   * \param neighborAddress IP address of the sending interface
   * \param neighborMask network mask of the sending interface
   * \param interface received interface index
   * \param socket bound socket
-  * \param neighborAuthType authentication type that neighbor suggested to use (plaintext = 0, MD5 = 1, SHA = 2)
+  * \param neighborAuthType authentication type that neighbor suggested to use (plain-text = 0, MD5 = 1, SHA = 2)
   * \param neighborAuthData the authentication phrase
   */
   NeighborTableEntry (uint32_t neighborID = 0, 
@@ -107,7 +107,7 @@ public:
 
   /**
   * \brief Get and Set the interface 
-  * \param neighborID the interface 
+  * \param interface the interface 
   * \returns the interface 
   */
   void SetInterface (uint32_t interface)
@@ -121,7 +121,7 @@ public:
 
   /**
   * \brief Get and Set the bounded socket
-  * \param neighborAddress the bounded socket
+  * \param socket the bounded socket
   * \returns the bounded socket
   */
   void SetSocket (Ptr<Socket> socket)
@@ -135,7 +135,7 @@ public:
 
   /**
   * \brief Get and Set the authentication type 
-  * \param neighborID the authentication type  
+  * \param authType the authentication type  
   * \returns the authentication type  
   */
   void SetAuthType (eslr::AuthType authType)
@@ -149,7 +149,7 @@ public:
 
   /**
   * \brief Get and Set the authentication data 
-  * \param neighborID the authentication data  
+  * \param authData the authentication data  
   * \returns the authentication data  
   */
   void SetAuthData (uint16_t authData)
@@ -180,7 +180,7 @@ private:
   Ipv4Address m_neighborAddress; //!< address of the Neighbor (this is the sender's interface IP address')
   Ipv4Mask m_neighborMask;  //!< mask of the sender's IP address'
   uint32_t m_interface;  //!< the neighbor is connected via this interface
-  Ptr<Socket> m_socket; //!< the neighbor is sending data to this socket (Broadcase listning socket)
+  Ptr<Socket> m_socket; //!< the neighbor is sending data to this socket (Broadcast listing socket)
   eslr::AuthType m_authType; //!< authentication type 
   uint16_t m_authData; //!< authentication phrase
 	eslr::Validity m_validity; //!< validity of the neighbor record
@@ -224,10 +224,11 @@ public:
   * \param timeoutDelay the timeout delay of the routes
   * \param garbageCollectionDelay the garbage collection delay for the route records
   * \param settlingDelay settling timeout for the route records
-  * this is added, because at the time that a neighbor record will be invalidated, all route records that 
-  * refer the neighbor as the gatewas have to be invalidated as well. However, Add, Update methods are
-  * coupled with the neighbor invalidate method. Therefore, at the begening (i.e., add method) the 
-  * reference point to the routing table is passed to the invalidate method.  
+  * Route management timers are passed because, at the time that a neighbor record will be invalidated, 
+  * all route records that refer the neighbor as the gateway have to be invalidated as well. 
+  * In addition Add and Update methods call necessary route invalidate methods. 
+  * Therefore, at the beginning (i.e., add method) the 
+  * reference point to the routing table is passed to refer both routing instances.  
   */
   void AddNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime, RoutingTable& routingTable, Time timeoutDelay, Time garbageCollectionDelay, Time settlingDelay);
 
@@ -240,37 +241,36 @@ public:
   bool DeleteNeighbor (NeighborTableEntry *neighborEntry, RoutingTable& routingTable);
 
   /**
-  * \brief Invalidate a neighbor record after NbrTimeout seconds exceeedes
+  * \brief Invalidate a neighbor record after NbrTimeout seconds exceeds
   * \param neighborEntry neighbor details
   * \param deleteTime garbage collection delay
   * \param invalidateTime route invalidation delay
   * \param routingTable a reference to the routing table.
-  * this is added, because at the time that a neighbor record will be invalidated, all route records that 
-  * refer the neighbor as the gatewas have to be invalidated as well. However, Add, Update methods are
-  * coupled with the neighbor invalidate method. Therefore, at the begening (i.e., add method) the 
-  * reference point to the routing table is passed to the invalidate method. 
+  * Route management timers are passed because, at the time that a neighbor record will be invalidated, 
+  * all route records that refer the neighbor as the gateway have to be invalidated as well. 
+  * In addition Add and Update methods call necessary route invalidate methods. 
   * \returns true if success  
   */
   bool InvalidateNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime, RoutingTable& routingTable);
 
   /**
   * \brief Find and return a neighbor record if exist. Do not consider the VALID flag
-  * \param neighborID ffind for the ID   
-  * \returns true and the currosponding neighbor record if success  
+  * \param neighborID find for the ID   
+  * \returns true and the corresponding neighbor record if success  
   */
   bool FindNeighbor (uint32_t neighborID, NeighborI &retNeighborEntry);
 
 	/**
   * \brief Find and return a neighbor record of a valid neighbor for given ID (consider the VALID flag)
   * \param neighborID find for the ID   
-  * \returns true and the currosponding neighbor record if success  
+  * \returns true and the corresponding neighbor record if success  
   */
   bool FindValidNeighbor (uint32_t neighborID, NeighborI &retNeighborEntry);
 
 	/**
   * \brief Find and return a neighbor record of a valid neighbor for given address (consider the VALID flag)
   * \param address find for the address   
-  * \returns true and the currosponding neighbor record if success  
+  * \returns true and the corresponding neighbor record if success  
   */
 	bool FindValidNeighborForAddress (Ipv4Address address, NeighborI &retNeighborEntry);
 
@@ -280,11 +280,9 @@ public:
   * \param invalidateTime time that the particular route invalidate
   * \param deleteTime garbage collection delay
   * \param routingTable a reference to the routing table.
-  * this is added, because at the time that a neighbor record will be invalidated, all route records that 
-  * refer the neighbor as the gatewas have to be invalidated as well. However, Add, Update methods are
-  * coupled with the neighbor invalidate method. Therefore, at the begening (i.e., add method) the 
-  * reference point to the routing table is passed to the invalidate method. 
-  * \returns true if success  
+  * Route management timers are passed because, at the time that a neighbor record will be invalidated, 
+  * all route records that refer the neighbor as the gateway have to be invalidated as well. 
+  * In addition Add and Update methods call necessary route invalidate methods.
   */
   bool UpdateNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime, RoutingTable& routingTable);
 
@@ -318,7 +316,7 @@ public:
   NeighborTableInstance m_neighborTable; //!< instance of the neighbor table
   Time m_routeTimeoutDelay; //!< Delay that determines the neighbor is UNRESPONSIVE
   Time m_routeGarbageCollectionDelay; //!< Delay before remove UNRESPONSIVE route/neighbor record
-  Time m_routeSettlingDelay; //!< Delay that determins a particular route is stable
+  Time m_routeSettlingDelay; //!< Delay that determines a particular route is stable
 }; // end of class NeighborTable
 
 } // end of eslr namespace
