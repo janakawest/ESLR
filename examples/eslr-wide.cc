@@ -30,6 +30,7 @@
 
 
 #include <fstream>
+#include <string>
 
 #include "ns3/core-module.h"
 #include "ns3/eslr-module.h"
@@ -76,46 +77,59 @@ main (int argc, char *argv[])
   bool BTable = false;
   bool NTable = false;
 
+	std::string nodeA = "nezu";
+ 	std::string nodeB = "dojima";
+
+	int nodeAInt = 1;
+	int nodeBInt = 1;
+	double simTime = 500;
+
   CommandLine cmd;
   cmd.AddValue ("verbose", "Tell application to log if true", verbose);
   cmd.AddValue ("NTable", "Print the Neighbor Table", NTable);
   cmd.AddValue ("MTable", "Print the Main Routing Table", MTable);
   cmd.AddValue ("BTable", "Print the Backup Routing Table", BTable);
+	cmd.AddValue ("SimTime", "Total Simulation Time", simTime);
+
+	cmd.AddValue ("DisNodeA","Node 1 to disconnect", nodeA);
+  cmd.AddValue ("DisNodeB","Node 2 to disconnect", nodeB);
+	cmd.AddValue ("AIntID","Node A's Interface ID", nodeAInt);
+	cmd.AddValue ("BIntID","Node B's Interface ID", nodeBInt);
 
   cmd.Parse (argc,argv);
 
  	NS_LOG_INFO ("Create Routers.");
  	
   Ptr<Node> sendai = CreateObject<Node> (); // 1
-  Names::Add ("SendaiRoute", sendai); 	
+  Names::Add ("SendaiRouter", sendai); 	
   Ptr<Node> tsukuba = CreateObject<Node> (); // 2 	
-  Names::Add ("TsukubaRoute", tsukuba);
+  Names::Add ("TsukubaRouter", tsukuba);
   Ptr<Node> nezu = CreateObject<Node> (); // 3
-  Names::Add ("NezuRoute", nezu);    	 	
+  Names::Add ("NezuRouter", nezu);    	 	
   Ptr<Node> kddiOtemachi = CreateObject<Node> (); // 4 	
-  Names::Add ("KDDIOtemachiRoute", kddiOtemachi); 
+  Names::Add ("KDDIOtemachiRouter", kddiOtemachi); 
   Ptr<Node> nttOtemachi = CreateObject<Node> (); // 5
-  Names::Add ("NTTOtemachiRoute", nttOtemachi);     
+  Names::Add ("NTTOtemachiRouter", nttOtemachi);     
  	Ptr<Node> shinkawasaki = CreateObject<Node> (); // 6 	
-  Names::Add ("ShinKawasakiRoute", shinkawasaki);
+  Names::Add ("ShinKawasakiRouter", shinkawasaki);
  	Ptr<Node> yagami = CreateObject<Node> (); // 7
-  Names::Add ("YagamiRoute", yagami);
+  Names::Add ("YagamiRouter", yagami);
  	Ptr<Node> fujisawa = CreateObject<Node> (); // 8
-  Names::Add ("FujisawaRoute", fujisawa);      	
+  Names::Add ("FujisawaRouter", fujisawa);      	
  	Ptr<Node> nara = CreateObject<Node> (); // 9
-  Names::Add ("NaraRoute", nara); 
+  Names::Add ("NaraRouter", nara); 
  	Ptr<Node> dojima = CreateObject<Node> (); // 10
-  Names::Add ("DojimaRoute", dojima);  
+  Names::Add ("DojimaRouter", dojima);  
   Ptr<Node> komatsu = CreateObject<Node> (); // 11
-  Names::Add ("KomatsuRoute", komatsu);  
+  Names::Add ("KomatsuRouter", komatsu);  
   Ptr<Node> sakyo = CreateObject<Node> (); // 12
-  Names::Add ("SakyoRoute", sakyo);  
+  Names::Add ("SakyoRouter", sakyo);  
   Ptr<Node> hiroshima = CreateObject<Node> (); // 13 	
-  Names::Add ("HiroshimaRoute", hiroshima);
+  Names::Add ("HiroshimaRouter", hiroshima);
   Ptr<Node> kurashiki = CreateObject<Node> (); // 14 	
-  Names::Add ("KurashikiRoute", kurashiki);  
+  Names::Add ("KurashikiRouter", kurashiki);  
   Ptr<Node> fukuoka = CreateObject<Node> (); // 15 	
-  Names::Add ("FukuokaRoute", fukuoka);   
+  Names::Add ("FukuokaRouter", fukuoka);   
   
  	NS_LOG_INFO ("Create Client Server Nodes.");
  	
@@ -433,7 +447,7 @@ main (int argc, char *argv[])
 	apps.Start (Seconds (10.0));
 	apps.Stop (Seconds (3599.0));	
 	
-	
+/*	
 	//create client1
 	UdpEchoClientHelper client1 (s1->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), port); 
   client1.SetAttribute ("MaxPackets", UintegerValue (1000));
@@ -523,7 +537,7 @@ main (int argc, char *argv[])
   apps = client10.Install (c10); 
 	apps.Start (Seconds (20.0));
 	apps.Stop (Seconds (350.0));												
-	
+*/	
   NS_LOG_INFO ("Enable Printing Options.");
   EslrHelper routingHelper;
   Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> (&std::cout);
@@ -537,11 +551,13 @@ main (int argc, char *argv[])
 //			routingHelper.PrintRoutingTableAt (Seconds (450), routers.Get (num), routingStream);			
 //			routingHelper.PrintRoutingTableAt (Seconds (552), routers.Get (num), routingStream);			
 //		}
-        routingHelper.PrintRoutingTableEvery (Seconds (50), fukuoka, routingStream);
+        routingHelper.PrintRoutingTableEvery (Seconds (50), dojima, routingStream);
 	} 	
 
-      Simulator::Schedule (Seconds (300), &MakeLinkDown, dojima, sakyo, 4, 2); 
-      Simulator::Schedule (Seconds (550), &MakeLinkUp, dojima, sakyo, 4, 2);
+			Ptr<Node> dNodeA = Names::Find<Node> (nodeA);
+			Ptr<Node> dNodeB = Names::Find<Node> (nodeB);
+      Simulator::Schedule (Seconds (300), &MakeLinkDown, dNodeA, dNodeB, nodeAInt, nodeBInt); 
+      Simulator::Schedule (Seconds (550), &MakeLinkUp, dNodeA, dNodeB, nodeBInt, nodeAInt);
 //      
 //      Simulator::Schedule (Seconds (410), &MakeLinkDown, b, c, 2, 2); 
 //      Simulator::Schedule (Seconds (550), &MakeLinkUp, b, c, 2, 2); 
@@ -553,7 +569,7 @@ main (int argc, char *argv[])
 //      Simulator::Schedule (Seconds (185), &MakeInterfaceUp, b, 3); 
       
 
-	Simulator::Stop (Seconds (3600));
+	Simulator::Stop (Seconds (simTime));
   Simulator::Run ();
   Simulator::Destroy ();
   return 0;

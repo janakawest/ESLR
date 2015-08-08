@@ -35,9 +35,6 @@
 #include "ns3/ipv4-l3-protocol.h"
 #include "ns3/inet-socket-address.h"
 
-//#include "ns3/output-stream-wrapper.h"
-//#include "ns3/tcp-socket.h"
-
 #define ESLR_BROAD_PORT 275
 #define ESLR_MULT_PORT 276
 #define ESLR_MULT_ADD "224.0.0.250"
@@ -96,7 +93,7 @@ public:
   void SetInterfaceExclusions (std::set<uint32_t> exceptions);
 
   /**
-   * \brief Add a default route to the router through the nextHop located on interface.
+   * \brief Add a default route to the router through the next-hop located on interface.
    *
    * The default route is usually installed manually, or it is the result of
    * some "other" routing protocol (e.g., BGP).
@@ -166,15 +163,15 @@ private:
   void HandleRouteResponses (ESLRRoutingHeader hdr, Ipv4Address senderAddress, uint32_t incomingInterface);
 
 	/**
-	 * \brief Genarate a unique ID for the node. 
-	 * 				This ID is a hash value of (IF0's IP address + netmask + AS#) 
+	 * \brief Generate a unique ID for the node. 
+	 * 	This ID is a hash value of (IF0's IP address + netmask + AS#) 
 	 */ 
 
 	uint32_t genarateNeighborID ();
 
 	/**
-	 * \brief Find the soceket details for the incomming Interface. 
-	 * \param interface the incomming interface 
+	 * \brief Find the socket details for the incoming Interface. 
+	 * \param interface the incoming interface 
    * \return the bounded socket
 	 */
   Ptr<Socket> GetSocketForInterface (uint32_t interface);
@@ -198,42 +195,42 @@ private:
    * \param table where to add
    * \param timeoutTime time that the route is going to expire
    * \param grabageCollectionTime, time that the route is removed from the table
-   * \param settlingTime time that a route has to waid before it is stated as valid route
+   * \param settlingTime time that a route has to wait before it is marked as valid route
    */
   void AddNetworkRouteTo (Ipv4Address network, Ipv4Mask networkMask, Ipv4Address nextHop, uint32_t interface, uint16_t metric, uint16_t sequenceNo, eslr::RouteType routeType, eslr::Table table, Time timeoutTime, Time garbageCollectionTime, Time settlingTime);
 
   /**
    * \brief Add route to network where the gateway is not needed. Such routes are usefull to add
-   * routes about the localy connected networks.
+   * routes about the locally connected networks.
    * \param network network address
    * \param networkMask network prefix
    * \param interface interface index
-   * \param metric the cumilative propagation time to the destination network
+   * \param metric the cumulative propagation time to the destination network
    * \param sequenceNo sequence number of the received route
    * \param routeType is Route is Primary or Secondary
    * \param table where to add
    * \param timeoutTime time that the route is going to expire
    * \param grabageCollectionTime, time that the route is removed from the table
-   * \param settlingTime time that a route has to wait before it is stated as valid route
+   * \param settlingTime time that a route has to wait before it is marked as valid route
    */
   void AddNetworkRouteTo (Ipv4Address network, Ipv4Mask networkMask, uint32_t interface, uint16_t metric, uint16_t sequenceNo, eslr::RouteType routeType, eslr::Table table, Time timeoutTime, Time garbageCollectionTime, Time settlingTime);
 
   /**
    * \brief Add route to a host.
-   * \param network network address
+   * \param host host address
    * \param interface interface index
-   * \param metric the cumilative propagation time to the destination network
+   * \param metric the cumulative propagation time to the destination network
    * \param sequenceNo sequence number of the received route
    * \param routeType is Route is Primary or Secondary
    * \param table where to add
    * \param timeoutTime time that the route is going to expire
    * \param grabageCollectionTime, time that the route is removed from the table
-   * \param settlingTime time that a route has to waid before it is stated as valid route
+   * \param settlingTime time that a route has to wait before it is marked as valid route
    */
   void AddHostRouteTo (Ipv4Address host, uint32_t interface, uint16_t metric, uint16_t sequenceNo, eslr::RouteType routeType, eslr::Table table, Time timeoutTime, Time garbageCollectionTime, Time settlingTime);
 
   /**
-  * \brief invalidate all routes match the given interface
+  * \brief invalidate all routes for a given interface
   * \param interface the reference interface
   * \param table routing table instance 
   */
@@ -291,7 +288,7 @@ private:
   
   /**
    * \brief calculate the cumulative cost of 
-   * router's packet processing delay and, links packet propagation delay.
+   * router's packet processing delay and links packet propagation delay.
    *
    * the route's packet processing delay (ts) is calculated based on
    * average packet arrival rate (i.e., Lambda) and 
@@ -299,7 +296,7 @@ private:
    * the total packet processing cost for a route is 1/(Mue - Lambda) 
    * (Assumption: router is work based on the M/M/1 Queue model)
    * 
-   * Link packet propagation delay (tp) is calculated based on the
+   * Link packet transmission delay (tr) is calculated based on the
    * link's capacity (i.e., link's bandwidth) (lc)
    * link's load (ll)(i.e., current occupancy of the link), which is calculated as follow.
    *  N1<------------>N2
@@ -307,9 +304,11 @@ private:
    *  Get size (per second) to be transmitted of the N2's interface x2 = (#ofPacket * averagePacketSize * 8)
    *  so that ll = x1 + x2
    *   Therefore available BW of the link (la) = lc - ll   
-   * it results that tp = averagePacketSize / la
+   * it results that tr = averagePacketSize / la
    *
-   * In addition, Links have their own transaction delay (tr), which is the delay of serialize the packet
+   * In addition, Links have their own propagation delay (tp), which depends on the distance 
+   * and the medium of the link. However, in this implementation, we added the link propagation delay 
+   * as the delay we configured in the simulation script. 
    *
    * Consequently, a packet will take: ts + tp + tr delay to reach to it's next hop.
    *
@@ -322,11 +321,11 @@ private:
    * \brief return the properties of the interface and its associated channel.
    * \param dev the reference netdevice to retrieve link and interface attributes
    * \param transDelay the links transaction delay (s)
-   * \param availableBW the available bandwidth of the link
+   * \param propagationDelay the propagation delay link
    *
    *  the available bandwidth of the link is calculated as follow
    *
-   * Link packet propagation delay (tp) is calculated based on the
+   * Link packet transmission delay (tr) is calculated based on the
    * link's capacity (i.e., link's bandwidth) (lc)
    * link's load (ll)(i.e., current occupancy of the link), which is calculated as follow.
    *  N1<------------>N2
@@ -335,7 +334,7 @@ private:
    *  so that ll = x1 + x2
    *   Therefore available BW of the link (la) = lc - ll   
    */  
-  void GetLinkDetails (Ptr<NetDevice> dev, double &transDelay, double &availableBW);
+  void GetLinkDetails (Ptr<NetDevice> dev, double &transDelay, double &propagationDelay);
   
   /**
   * \brief look up for a forwarding route in the routing table.
@@ -351,7 +350,7 @@ private:
 // \{
 // note: Since the result of socket->GetBoundNetDevice ()->GetIfIndex () is ambiguity and 
 // it is dependent on the interface initialization (i.e., if the loop-back is already up) the socket
-// list is used inthis implementation. Sockets are then added to the relevant neighbor in the 
+// list is used in this implementation. Sockets are then added to the relevant neighbor in the 
 // neighbor table.
   /// Socket list type
   typedef std::map< Ptr<Socket>, uint32_t> SocketList;

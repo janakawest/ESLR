@@ -160,7 +160,7 @@ public:
   /**
   * \brief the route type of the route record
   * All routes are in the main table are marked as eslr::PRIMARY
-  * Backup routing table maintains two route records for a single destination prifix,   
+  * Backup routing table maintains two route records for a single destination prefix,   
   * The reference route, which is same as the primary route in the main table, also marked as eslr::Primary
   * The other record, which has bit higher metric than the primary route, is marked as eslr::SECONDARY.
   * In case the main route disconnected or invalidated, the backup route moves to the main table eslr::PRIMARY. 
@@ -269,7 +269,7 @@ public:
    * \param routingTableEntry The routing table entry
    * \param invalidateTime the invalidate time
    * \param deleteTime garbage collection time
-   * \param settlingTime time route has to wait at the backup routing tbale before it moves to the Main
+   * \param settlingTime time route has to wait at the backup routing table before it moves to the Main
    */
   void MoveToMain (RoutingTableEntry *routingTableEntry, Time invalidateTime, Time deleteTime, Time settlingTime);
 
@@ -292,7 +292,7 @@ public:
    * \param routingTableEntry The routing table entry
    * \param invalidateTime the invalidate time
    * \param deleteTime garbage collection time
-   * \param settlingTime time route has to wait at the backup routing tbale before it moves to the Main
+   * \param settlingTime time route has to wait at the backup routing table before it moves to the Main
    * \param table indicate table type (main or backup)
    */
   void AddHostRoute (RoutingTableEntry *routingTableEntry, Time invalidateTime, Time deleteTime, Time settingTime, eslr::Table table);
@@ -301,7 +301,7 @@ public:
   * \brief Invalidate a route record
   * The invalidate method calls due to several reasons: 
   * 1. Invalidate a route due to expiration event triggered (Routes are marked as eslr::INVALID).
-  * 2. Due to disconnection of link or the interface (Routes are marked as eslr::DISCONNECTED).
+  * 2. Due to disconnection of a link or an interface (Routes are marked as eslr::DISCONNECTED).
   * 3. Due to unresponsive neighbors (Routes are marked as eslr::DISCONNECTED).
   * 4. Due to unresponsive destination address (Routes are marked as eslr::DISCONNECTED).
   *
@@ -330,7 +330,7 @@ public:
   * an event to delete after the garbage collection time. 
   * Same will be done to the routes, i.e., eslr::SECONDARY, in the backup table. 
   *
-  * \param routingTableEntry currosponding route record
+  * \param routingTableEntry corresponding route record
   * \param invalidateTime the invalidate time
   * \param deleteTime garbage collection delay  
   * \param settlingTime time route has to wait at the backup routing table before it moves to the Main
@@ -355,7 +355,7 @@ public:
   * \param destination find for the destination
   * \param netMask network mask of the destination
   * \param table indicate table type (main or backup)   
-  * \returns true and the currosponding route record if success  
+  * \returns true and the corresponding route record if success  
   */
   bool FindRouteRecord (Ipv4Address destination, Ipv4Mask netMask, RoutesI &retRoutingTableEntry, eslr::Table table);
 
@@ -365,7 +365,7 @@ public:
   * \param netMask network mask of the destination
   * \param retRoutingTableEntry the found routing table entry
   * \param table indicate table type (main or backup)   
-  * \returns true and the currosponding route record if success  
+  * \returns true and the corresponding route record if success  
   */
   bool FindValidRouteRecord (Ipv4Address destination, Ipv4Mask netMask, RoutesI &retRoutingTableEntry, eslr::Table table);
 

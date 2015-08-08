@@ -63,15 +63,15 @@ TypeId EslrRoutingProtocol::GetTypeId (void)
     .SetParent<Ipv4RoutingProtocol> ()
     .AddConstructor<EslrRoutingProtocol> ()
     .AddAttribute ( "KeepAliveInterval","The time between two Keep Alive Messages.",
-			              TimeValue (Seconds(30)), /*This has to be adjust according to the user requirement*/
+			              TimeValue (Seconds(30)), /*This should adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_kamTimer),
 			              MakeTimeChecker ())
     .AddAttribute ( "NeighborTimeoutDelay","The delay to mark a neighbor as unresponsive.",
-			              TimeValue (Seconds(120)), /*This has to be adjust according to the user requirement*/
+			              TimeValue (Seconds(120)), /*This should adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_neighborTimeoutDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "GarbageCollection","The delay to remove unresponsive neighbors from the neighbor table.",
-			              TimeValue (Seconds(20)), /*This has to be adjust according to the user requirement*/
+			              TimeValue (Seconds(20)), /*This should adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_garbageCollectionDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "StartupDelay", "Maximum random delay for protocol startup (send route requests).",
@@ -84,26 +84,26 @@ TypeId EslrRoutingProtocol::GetTypeId (void)
                     MakeEnumChecker (NO_SPLIT_HORIZON, "NoSplitHorizon",
                                       SPLIT_HORIZON, "SplitHorizon"))
     .AddAttribute ( "RouteTimeoutDelay","The delay to mark a route is invalidate.",
-			              TimeValue (Seconds(180)), /*This has to be adjust according to the user requirement*/
+			              TimeValue (Seconds(180)), /*This should adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_routeTimeoutDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "SettlingTime","The delay that a route record has to keep in the backup table before it is moved to the main table.",
-			              TimeValue (Seconds(60)), /*This has to be adjust according to the user requirement*/
+			              TimeValue (Seconds(60)), /*This should adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_routeSettlingDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "MinTriggeredCooldown","Minimum time gap between two triggered updates.",
-			              TimeValue (Seconds(1)), /*This has to be adjust according to the user requirement*/
+			              TimeValue (Seconds(1)), /*This should adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_minTriggeredCooldownDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "MaxTriggeredCooldown","Maximum time gap between two triggered updates.",
-			              TimeValue (Seconds(5)), /*This has to be adjust according to the user requirement*/
+			              TimeValue (Seconds(5)), /*This should adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_maxTriggeredCooldownDelay),
 			              MakeTimeChecker ())
     .AddAttribute ( "PeriodicUpdateInterval","Time between two periodic updates.",
-			              TimeValue (Seconds(30)), /*This has to be adjust according to the user requirement*/
+			              TimeValue (Seconds(30)), /*This should adjust according to the user requirement*/
 			              MakeTimeAccessor (&EslrRoutingProtocol::m_periodicUpdateDelay),
 			              MakeTimeChecker ())
-    .AddAttribute ( "PrintingMethod", "Specify which table has to be print.",
+    .AddAttribute ( "PrintingMethod", "Specify which table is to print.",
                     EnumValue (DONT_PRINT),
                     MakeEnumAccessor (&EslrRoutingProtocol::m_print),
                     MakeEnumChecker ( MAIN_R_TABLE, "MainRoutingTable",
@@ -338,10 +338,8 @@ EslrRoutingProtocol::NotifyInterfaceDown (uint32_t interface)
 {
   NS_LOG_FUNCTION (this << interface);
   
-  // as neighbors are invalidated automatically,
-  // and all routes that are referring this interface will be
-  // removed from the routing tables, 
-  // neighbors are not invalidated forcefully.
+  // All routes that are referring this interface has to remove from both routing tables, 
+  // Neighbors are not invalidated forcefully.
     
   InvalidateRoutesForInterface (interface, eslr::BACKUP);
   InvalidateRoutesForInterface (interface, eslr::MAIN);
@@ -362,7 +360,8 @@ EslrRoutingProtocol::NotifyInterfaceDown (uint32_t interface)
 
   if (m_interfaceExclusions.find (interface) == m_interfaceExclusions.end ())
   {
-    // Forcefully cancel out the triggered update cool-down time.
+    // As this is an important event, 
+    // forcefully cancel out the triggered update cool-down timer.
     // Then send the triggered update as this is an emergency situation.
     
     if (m_nextTriggeredUpdate.IsRunning ())
@@ -392,7 +391,13 @@ EslrRoutingProtocol::NotifyAddAddress (uint32_t interface, Ipv4InterfaceAddress 
 
   if (address.GetLocal() != Ipv4Address () && netMask != Ipv4Mask ())
   {
-    AddNetworkRouteTo (networkAddress, netMask, interface, 0, 0, eslr::PRIMARY, eslr::MAIN, Seconds (0), Seconds (0), Seconds (0));
+    AddNetworkRouteTo (networkAddress, 
+                        netMask, 
+                        interface, 
+                        0, 0, 
+                        eslr::PRIMARY, 
+                        eslr::MAIN, 
+                        Seconds (0), Seconds (0), Seconds (0));
   }
 
   SendTriggeredRouteUpdate ();
@@ -487,7 +492,7 @@ void EslrRoutingProtocol::sendKams ()
   tag.SetTtl (1);
   p->AddPacketTag (tag);
   
-  // Note:In this method, we assume that number of interfaces are not exceeding Maximum RUMs that a 
+  // Note:In this method, we assume that number of interfaces of a router are not exceeding Maximum RUMs that a 
   //      ESLRRouting header supports. Therefore, we do not consider of calculating the number of 
   //      RUMs that include in to a ESLRouting header. 
   //      However, following equation can be used to calculate maximum number of RUMs 
@@ -500,7 +505,7 @@ void EslrRoutingProtocol::sendKams ()
   hdr.SetCommand (eslr::KAM);
   hdr.SetRuCommand (eslr::NO);
   hdr.SetRoutingTableRequestType (eslr::NON);
-  hdr.SetAuthType (PLAIN_TEXT); // User should enter auth type
+  hdr.SetAuthType (PLAIN_TEXT); // User should enter Auth type
   hdr.SetAuthData (1234); // User should enter Auth data
   
 	for (SocketListI iter = m_sendSocketList.begin (); iter != m_sendSocketList.end (); iter++ )
@@ -574,8 +579,6 @@ EslrRoutingProtocol::SendRouteRequestTo (Ipv4Address toAddress, eslr::EslrHeader
     hdr.SetRoutingTableRequestType (eslr::OE);
     hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
     hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr
-    
-    // Todo: Implement this method 
   }
   else if (reqType == eslr::NE)
   {
@@ -588,8 +591,6 @@ EslrRoutingProtocol::SendRouteRequestTo (Ipv4Address toAddress, eslr::EslrHeader
     hdr.SetRoutingTableRequestType (eslr::NE);
     hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
     hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr
-    
-    // Todo: Implement this method
   }
   else if (reqType == eslr::ET)
   {
@@ -603,7 +604,7 @@ EslrRoutingProtocol::SendRouteRequestTo (Ipv4Address toAddress, eslr::EslrHeader
     hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
     hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr  
     
-    // create the RUM and add some dummy data
+    // create a RUM and add some dummy data
     ESLRrum rum;
     
     rum.SetSequenceNo (0);
@@ -682,8 +683,8 @@ EslrRoutingProtocol::DoSendRouteUpdate (eslr::UpdateType updateType)
   NeighborTable::NeighborI it;
 
   // acquiring an instance of the main routing table
-  // Note that this instance is a separately created 
-  // fresh instance of the routing table. remove it after you use it.
+  // Note that this instance is a separately created fresh instance of the routing table. 
+  // remove it after you use it.
   // this is done to accelerate the accessibility of the main routing table.
   RoutingTable::RoutingTableInstance tempMainTable;
   m_routing.ReturnRoutingTable (tempMainTable, eslr::MAIN);
@@ -855,7 +856,7 @@ EslrRoutingProtocol::Receive (Ptr<Socket> socket)
     // As multicasting route update messages are receiving from non neighbor routers, 
     // it is not possible to use per neighbor authentication. 
     // Therefore, per neighbor authentication is temporarily disabled.
-    // Every packet are accepted.
+    // Every packet is accepted.
     // However, in this case, we have to consider some method to prevent DDoS attacks 
 
     //NeighborTable::NeighborI neighborRecord;
@@ -1294,7 +1295,6 @@ EslrRoutingProtocol::HandleRouteResponses (ESLRRoutingHeader hdr, Ipv4Address se
       // cost is in the form of microseconds.     
       
       uint32_t lrCost = CalculateLRCost (m_ipv4->GetNetDevice (incomingInterface));
-			//uint32_t lrCost = m_rng->GetValue (2.0, 5.0); 
       uint32_t slrCost = it->GetMatric () + lrCost;
 
       RoutingTable::RoutesI primaryRoute, secondaryRoute, mainRoute;
@@ -1353,7 +1353,7 @@ EslrRoutingProtocol::HandleRouteResponses (ESLRRoutingHeader hdr, Ipv4Address se
         {
           if (primaryRoute->first->GetGateway () == senderAddress)
           {
-            // Update the PRIMARY route if the cost is smaller than that of the main route.
+            // Update the PRIMARY regardless of the cost of the main route.
             // Nevertheless, at the time Main route expires, 
             // protocol automatically checks for the Primary route.
             // If the primary route's cost is lower that that of the main route, 
@@ -1847,7 +1847,7 @@ EslrRoutingProtocol::GetLinkDetails (Ptr<NetDevice> dev, double &transDelay, dou
   channel->GetAttribute ("Delay", getDelay);
   delay = getDelay.Get ().c_str ();
   temp = delay.substr (1, (delay.size () - 2));
-  transDelay = (double)(atof (temp.c_str ())/1000000000.0); // in seconds
+  propagationDelay = (double)(atof (temp.c_str ())/1000000000.0); // in seconds
   
   // Get the capacity of the link
   dev->GetAttribute("DataRate",getBW);
@@ -1877,7 +1877,7 @@ EslrRoutingProtocol::GetLinkDetails (Ptr<NetDevice> dev, double &transDelay, dou
   availableBW = linkBandwidth - tempValue;
   
   //based on the avilable bandwidth, the packet propagation time
-  propagationDelay = (node->GetAveragePacketSizeOfDevice (dev) * 8) / availableBW;;  
+  transDelay = (node->GetAveragePacketSizeOfDevice (dev) * 8) / availableBW;;  
 }
 
 }// end of namespace eslr
