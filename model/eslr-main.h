@@ -343,9 +343,14 @@ private:
   * \param dev output net-device if any (assigned 0 otherwise)
   * \return Ipv4Route where that the given packet has to be forwarded 
   */
-  Ptr<Ipv4Route> LookupRoute (Ipv4Address address, Ptr<NetDevice> dev = 0);  
+  Ptr<Ipv4Route> LookupRoute (Ipv4Address address, Ptr<NetDevice> dev = 0); 
   
-
+  /**
+  * \brief the function developed for debugin purposes.
+  * every m_printDuration the function will output number of protocol messages
+  */
+  void PrintStats ();
+  
 // \name For prtocol management
 // \{
 // note: Since the result of socket->GetBoundNetDevice ()->GetIfIndex () is ambiguity and 
@@ -376,6 +381,13 @@ private:
 
   EventId m_nextPeriodicUpdate; //!< Next periodic update event
   EventId m_nextTriggeredUpdate; //!< Next triggered update event
+// \}
+
+// \name for debugging
+// \{
+  EventId m_countingEvent; //!< Next statistic printing event
+  uint64_t m_protocolMessages; //!< Number of protocol messages received between printing event
+  Time m_printDuration; //!< Duration between two printing events
 // \}
 
 // \name For Neighbor management

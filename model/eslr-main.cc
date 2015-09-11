@@ -50,6 +50,7 @@ namespace eslr {
 NS_OBJECT_ENSURE_REGISTERED (EslrRoutingProtocol);
 EslrRoutingProtocol::EslrRoutingProtocol() :  m_ipv4 (0),
                                               m_initialized (false),
+                                              m_protocolMessages (0),                                              
                                               m_neighborTable ()
 {
   m_rng = CreateObject<UniformRandomVariable> ();
@@ -109,6 +110,10 @@ TypeId EslrRoutingProtocol::GetTypeId (void)
                     MakeEnumChecker ( MAIN_R_TABLE, "MainRoutingTable",
                                       N_TABLE, "NeighborTable",
                                       BACKUP_R_TABLE, "BackupRoutingTable"))
+    .AddAttribute ( "DebugPrintingDuration", "Time gap between two debug messages.",
+                    TimeValue (Seconds(20)),
+                    MakeTimeAccessor (&EslrRoutingProtocol::m_printDuration),
+                    MakeTimeChecker ())
   ;
   return tid;
 }
@@ -205,7 +210,10 @@ EslrRoutingProtocol::DoInitialize ()
   // Otherwise schedule a periodic update
   delay = m_periodicUpdateDelay + Seconds (m_rng->GetValue (0, 0.5*m_periodicUpdateDelay.GetSeconds ()));
   m_nextPeriodicUpdate = Simulator::Schedule (delay, &EslrRoutingProtocol::SendPeriodicUpdate, this);
-
+  
+//  // Initialize the periodic debug counter
+//  m_countingEvent = Simulator::Schedule (m_printDuration, &EslrRoutingProtocol::PrintStats, this); 
+    
   Ipv4RoutingProtocol::DoInitialize ();
 }
 void 
@@ -870,6 +878,8 @@ EslrRoutingProtocol::Receive (Ptr<Socket> socket)
     //  NS_ABORT_MSG ("Sender is not a neighbor of me, aborting.");
     //}
 
+    m_protocolMessages++; // Inrement the debug message counter.
+  
     if (hdr.GetRuCommand () == eslr::REQUEST)
     {
       HandleRouteRequests (hdr, senderAddress, senderPort, ipInterfaceIndex);
@@ -1818,10 +1828,10 @@ EslrRoutingProtocol::CalculateLRCost (Ptr<NetDevice> dev)
   
   // the delay that a packet takes to reach to its other end
   LCost = transDelay + propagationDelay; 
-  
-  RCost =  1 / (node->GetRouterMue () - node->GetRouterLambda ());
-  
-  LRCost =  (LCost + RCost) * 1000000; // in microseconds
+
+  RCost = (1 / (node->GetRouterMue () - node->GetRouterLambda ())) * 1000; // in MilliSeconds
+
+  LRCost = (LCost + RCost); // in Milliseconds
 
   return uint32_t (LRCost);
 }
@@ -1846,12 +1856,15 @@ EslrRoutingProtocol::GetLinkDetails (Ptr<NetDevice> dev, double &transDelay, dou
   
   channel->GetAttribute ("Delay", getDelay);
   delay = getDelay.Get ().c_str ();
-  temp = delay.substr (1, (delay.size () - 2));
-  propagationDelay = (double)(atof (temp.c_str ())/1000000000.0); // in seconds
+
+  temp = delay.substr (1, (delay.size () - 5));
+  
+  propagationDelay = (double)(atof (temp.c_str ())/1000000.0); // Converted to MilliSeconds as it comes with ns
   
   // Get the capacity of the link
   dev->GetAttribute("DataRate",getBW);
   bandwidth = getBW.Get ().c_str ();
+
   temp = bandwidth.substr (0, (bandwidth.size () - 3));
   linkBandwidth = (double) (atof (temp.c_str ())); // in bps
   
@@ -1877,7 +1890,17 @@ EslrRoutingProtocol::GetLinkDetails (Ptr<NetDevice> dev, double &transDelay, dou
   availableBW = linkBandwidth - tempValue;
   
   //based on the avilable bandwidth, the packet propagation time
-  transDelay = (node->GetAveragePacketSizeOfDevice (dev) * 8) / availableBW;;  
+  transDelay = ((node->GetAveragePacketSizeOfDevice (dev) * 8) / availableBW ) * 1000; // in MilliSeconds
+}
+
+void
+EslrRoutingProtocol::PrintStats ()
+{
+  NS_LOG_FUNCTION (this);
+
+  std::cout << int(m_nodeId) << ":" << m_protocolMessages << std::endl;
+  m_protocolMessages =0; // reset the counter.
+  m_countingEvent = Simulator::Schedule (m_printDuration, &EslrRoutingProtocol::PrintStats, this);  
 }
 
 }// end of namespace eslr

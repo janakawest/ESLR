@@ -49,6 +49,8 @@
 #include "ns3/ipv4-static-routing-helper.h"
 #include "ns3/ipv4-routing-table-entry.h"
 
+#include "ns3/pyviz.h"
+
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("ESLRSimpleRouting");
@@ -85,6 +87,9 @@ main (int argc, char *argv[])
   bool NTable = false;
 
   CommandLine cmd;
+
+	{ PyViz v; }
+
   cmd.AddValue ("verbose", "Tell application to log if true", verbose);
   cmd.AddValue ("NTable", "Print the Neighbor Table", NTable);
   cmd.AddValue ("MTable", "Print the Main Routing Table", MTable);

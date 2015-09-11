@@ -512,9 +512,11 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
 		if (param.invalidateType == eslr::EXPIRE)
 		{
       if (foundBackupRoute && 
-          (secondaryRoute->first->GetMetric () < primaryRoute->first->GetMetric ()) && 
-          (Simulator::GetDelayLeft (secondaryRoute->second) < ((param.invalidateTime/3)*2)))
+          (secondaryRoute->first->GetMetric () < primaryRoute->first->GetMetric ())/* && 
+          (Simulator::GetDelayLeft (secondaryRoute->second) < ((param.invalidateTime/3)*2))*/)
 			{
+			  // Todo: Check above condition
+			  
 			  // if there is a backup route, which is stable and the cost is better than that of the primary route,
 			  // update both main and primary according to the backup route
 			  // delete the backup route and let another backup route to come
@@ -571,7 +573,7 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
 				
 				return retVal = true;			  			  
 			}
-			else if (Simulator::GetDelayLeft (primaryRoute->second) > 0)
+			else if (Simulator::GetDelayLeft (primaryRoute->second) >= 0)
 			{
 			  // As a primary route is there (always) 
 			  // the main route updates according to the primary route
@@ -695,7 +697,7 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
         primaryRoute->second.Cancel ();         
         primaryRoute->second = EventId (); 
         
-        std::cout << "updating for invalid neighbor or interface" << std::endl;         
+        std::cout << int(m_nodeId)<<" :updating the route " << destination << "/" << mask << " for the gateway " << gateway << std::endl;         
 				
 				return retVal = true;
 			}
@@ -1119,6 +1121,7 @@ RoutingTable::InvalidateRoutesForInterface (uint32_t interface,  Time invalidate
         it->second  = Simulator::Schedule (MicroSeconds (m_rng->GetValue (0.0, 2.0)),
                                            &RoutingTable::InvalidateRoute,
                                            this, it->first, p);
+        std::cout << int(m_nodeId)<<" is invalidating:" << it->first->GetDestNetwork () << "/" << it->first->GetDestNetworkMask () << ", which uses broken interface: "<< interface << std::endl;                                                    
       }
     }  
   }
@@ -1482,15 +1485,15 @@ RoutingTable::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table ta
       
       // for testing purposes, all route records available in the table are printed.
       // customize it by un-commenting the following lines
-      //eslr::Validity validity = route->GetValidity ();
+      eslr::Validity validity = route->GetValidity ();
 
-      //if (validity == eslr::VALID || validity == eslr::LHOST || validity == eslr::INVALID || validity == eslr::DISCONNECTED)
-      //{
-        std::ostringstream dest, gateway, val;
+      if (validity == eslr::VALID || validity == eslr::LHOST || validity == eslr::INVALID || validity == eslr::DISCONNECTED)
+      {      
+          std::ostringstream dest, gateway, val;
         
-        dest << route->GetDestNetwork () << "/" << int (route->GetDestNetworkMask ().GetPrefixLength ());
-        *os << std::setiosflags (std::ios::left) << std::setw (20) << dest.str ();
-        
+          dest << route->GetDestNetwork () << "/" << int (route->GetDestNetworkMask ().GetPrefixLength ());
+          *os << std::setiosflags (std::ios::left) << std::setw (20) << dest.str ();
+          
         gateway << route->GetGateway ();
         *os << std::setiosflags (std::ios::left) << std::setw (17) << gateway.str ();
         
@@ -1498,7 +1501,7 @@ RoutingTable::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table ta
         
         *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetSequenceNo ();
         
-        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetMetric ();
+          *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetMetric ();
         
         if (route->GetValidity () == eslr::VALID)
           val << "VALID";
@@ -1517,13 +1520,16 @@ RoutingTable::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table ta
         *os << std::setiosflags (std::ios::left) << std::setw (10) << Simulator::GetDelayLeft (it->second).GetSeconds ();
        
         *os << '\n';
-      //}        
+      }        
     }
   }
   else if (table == eslr::BACKUP)
   {
     *os << "Destination         Gateway          If  Seq#    Metric  Validity      Pri/Sec Next Event (s)" << '\n';
     *os << "------------------  ---------------  --  ------  ------  ------------  ------- --------------" << '\n';
+    // for Primary routes
+    // This sort method is very lame method. Will have to modify it.
+    // Add primary route to the top and secondary route to bottom.
 
     for (RoutesCI it = m_backupRoutingTable.begin ();  it!= m_backupRoutingTable.end (); it++)
     {
@@ -1531,35 +1537,71 @@ RoutingTable::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table ta
 
       std::ostringstream dest, gateway, validity, preSec;
 
-      dest << route->GetDestNetwork () << "/" << int (route->GetDestNetworkMask ().GetPrefixLength ());
-      *os << std::setiosflags (std::ios::left) << std::setw (20) << dest.str ();
-      
-      gateway << route->GetGateway ();
-      *os << std::setiosflags (std::ios::left) << std::setw (17) << gateway.str ();
-      
-      *os << std::setiosflags (std::ios::left) << std::setw (4) << route->GetInterface ();
-      
-      *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetSequenceNo ();
-      
-      *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetMetric ();
-      
-      if (route->GetValidity () == eslr::VALID)
-        validity << "VALID";
-      else if (route->GetValidity () == eslr::INVALID)
-          validity << "INVALID";
-      else if (route->GetValidity () == eslr::DISCONNECTED)
-          validity << "Disconnected";               
-      *os << std::setiosflags (std::ios::left) << std::setw (14) << validity.str ();
-      
       if (route->GetRouteType () == eslr::PRIMARY)
+      {
+        dest << route->GetDestNetwork () << "/" << int (route->GetDestNetworkMask ().GetPrefixLength ());
+        *os << std::setiosflags (std::ios::left) << std::setw (20) << dest.str ();
+        
+        gateway << route->GetGateway ();
+        *os << std::setiosflags (std::ios::left) << std::setw (17) << gateway.str ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (4) << route->GetInterface ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetSequenceNo ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetMetric ();
+        
+        if (route->GetValidity () == eslr::VALID)
+          validity << "VALID";
+        else if (route->GetValidity () == eslr::INVALID)
+            validity << "INVALID";
+        else if (route->GetValidity () == eslr::DISCONNECTED)
+            validity << "Disconnected";               
+        *os << std::setiosflags (std::ios::left) << std::setw (14) << validity.str ();
+        
         preSec << "P";
-      else
-        preSec << "S";
-      *os << std::setiosflags (std::ios::left) << std::setw (8) << preSec.str ();
-      
-      *os << std::setiosflags (std::ios::left) << std::setw (10) << Simulator::GetDelayLeft (it->second).GetSeconds ();
-      *os << '\n';
+        *os << std::setiosflags (std::ios::left) << std::setw (8) << preSec.str ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (10) << Simulator::GetDelayLeft (it->second).GetSeconds ();
+        *os << '\n';
+      }
     }
+    *os << "--------------------------------------------------------------------------------------------" << '\n';    
+    for (RoutesCI it = m_backupRoutingTable.begin ();  it!= m_backupRoutingTable.end (); it++)
+    {
+      RoutingTableEntry *route = it->first;
+
+      std::ostringstream dest, gateway, validity, preSec;
+
+      if (route->GetRouteType () == eslr::SECONDARY)
+      {
+        dest << route->GetDestNetwork () << "/" << int (route->GetDestNetworkMask ().GetPrefixLength ());
+        *os << std::setiosflags (std::ios::left) << std::setw (20) << dest.str ();
+        
+        gateway << route->GetGateway ();
+        *os << std::setiosflags (std::ios::left) << std::setw (17) << gateway.str ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (4) << route->GetInterface ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetSequenceNo ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetMetric ();
+        
+        if (route->GetValidity () == eslr::VALID)
+          validity << "VALID";
+        else if (route->GetValidity () == eslr::INVALID)
+            validity << "INVALID";
+        else if (route->GetValidity () == eslr::DISCONNECTED)
+            validity << "Disconnected";               
+        *os << std::setiosflags (std::ios::left) << std::setw (14) << validity.str ();
+        
+        preSec << "S";
+        *os << std::setiosflags (std::ios::left) << std::setw (8) << preSec.str ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (10) << Simulator::GetDelayLeft (it->second).GetSeconds ();
+        *os << '\n';
+      }
+    }    
   }
   else // invalid routing table type
     NS_ABORT_MSG ("No specified routing table found. Aborting.");

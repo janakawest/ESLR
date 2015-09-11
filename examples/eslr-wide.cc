@@ -24,8 +24,8 @@
 // The topology can be found in the following link. http://two.wide.ad.jp
 // Note: the exact link details are simulated in this simulation. 
 // However, for some constraints,
-// we do not simulate the exact network addresses and client server placements as the WIDE network.
-// every router is use ESLR as its routing protocol.
+// we do not simulate the exact network addresses and client server placements as the WIDE network does.
+// every router use ESLR as its routing protocol.
 // Servers, and Clients are connected to respective routers using a default gateway.
 
 
@@ -41,7 +41,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/ipv4-static-routing-helper.h"
 #include "ns3/ipv4-routing-table-entry.h"
-
+#include "ns3/netanim-module.h"
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("WIDETestingNetwork");
@@ -77,24 +77,27 @@ main (int argc, char *argv[])
   bool BTable = false;
   bool NTable = false;
 
-	std::string nodeA = "nezu";
- 	std::string nodeB = "dojima";
+	std::string nodeA = "NezuRouter";
+ 	std::string nodeB = "YagamiRouter";
 
-	int nodeAInt = 1;
-	int nodeBInt = 1;
-	double simTime = 500;
+	std::string nodeP = "KDDIOtemachiRouter";
+
+	int nodeAInt = 4;
+	int nodeBInt = 2;
+	double simTime = 750;
 
   CommandLine cmd;
   cmd.AddValue ("verbose", "Tell application to log if true", verbose);
+	cmd.AddValue ("PrintNode", "The node that Print its tables", nodeP);
   cmd.AddValue ("NTable", "Print the Neighbor Table", NTable);
   cmd.AddValue ("MTable", "Print the Main Routing Table", MTable);
   cmd.AddValue ("BTable", "Print the Backup Routing Table", BTable);
 	cmd.AddValue ("SimTime", "Total Simulation Time", simTime);
 
 	cmd.AddValue ("DisNodeA","Node 1 to disconnect", nodeA);
+	cmd.AddValue ("AIntID","Node 1's Interface ID", nodeAInt);	
   cmd.AddValue ("DisNodeB","Node 2 to disconnect", nodeB);
-	cmd.AddValue ("AIntID","Node A's Interface ID", nodeAInt);
-	cmd.AddValue ("BIntID","Node B's Interface ID", nodeBInt);
+	cmd.AddValue ("BIntID","Node 2's Interface ID", nodeBInt);
 
   cmd.Parse (argc,argv);
 
@@ -542,6 +545,8 @@ main (int argc, char *argv[])
   EslrHelper routingHelper;
   Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> (&std::cout);
 
+
+	Ptr<Node> pNode = Names::Find<Node> (nodeP);
   if (MTable || NTable || BTable)
 	{
 //		for (uint8_t num = 0; num < routers.GetN (); num ++)
@@ -551,13 +556,13 @@ main (int argc, char *argv[])
 //			routingHelper.PrintRoutingTableAt (Seconds (450), routers.Get (num), routingStream);			
 //			routingHelper.PrintRoutingTableAt (Seconds (552), routers.Get (num), routingStream);			
 //		}
-        routingHelper.PrintRoutingTableEvery (Seconds (50), dojima, routingStream);
+        routingHelper.PrintRoutingTableEvery (Seconds (50), pNode, routingStream);
 	} 	
 
 			Ptr<Node> dNodeA = Names::Find<Node> (nodeA);
 			Ptr<Node> dNodeB = Names::Find<Node> (nodeB);
-      Simulator::Schedule (Seconds (300), &MakeLinkDown, dNodeA, dNodeB, nodeAInt, nodeBInt); 
-      Simulator::Schedule (Seconds (550), &MakeLinkUp, dNodeA, dNodeB, nodeBInt, nodeAInt);
+      Simulator::Schedule (Seconds (300), &MakeLinkDown, dNodeA, dNodeB, 4, 2); 
+      Simulator::Schedule (Seconds (550), &MakeLinkUp, dNodeA, dNodeB, 4, 2);
 //      
 //      Simulator::Schedule (Seconds (410), &MakeLinkDown, b, c, 2, 2); 
 //      Simulator::Schedule (Seconds (550), &MakeLinkUp, b, c, 2, 2); 
@@ -570,6 +575,7 @@ main (int argc, char *argv[])
       
 
 	Simulator::Stop (Seconds (simTime));
+	AnimationInterface anim ("WIDE_Animation.xml");
   Simulator::Run ();
   Simulator::Destroy ();
   return 0;
