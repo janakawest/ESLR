@@ -77,7 +77,7 @@ int main (int argc, char*argv[])
   
   // Topology format request
   std::string format ("Rocketfuel");
-  std::string tFile ("src/eslr/examples/AS3967Elatencies.intra");
+  std::string tFile ("src/eslr/examples/AS1221ELatencies.intra");
 
 	double simTime = 3600;
 
@@ -176,7 +176,7 @@ int main (int argc, char*argv[])
   {
     nc[i] = NodeContainer (iter->GetFromNode (), iter->GetToNode ());
     linksWeight[i] = iter->GetWeight ();
-    //std::cout << iter->GetFromNode ()->GetId () << " " << iter->GetToNode ()->GetId () << " " <<  iter->GetWeight () << std::endl;
+//  std::cout << iter->GetFromNode ()->GetId () << " " << iter->GetToNode ()->GetId () << " " <<  iter->GetWeight () << std::endl;
   }
   
   NS_LOG_INFO ("Creating Netdevice Containers");  
@@ -219,21 +219,21 @@ int main (int argc, char*argv[])
 
   if (MTable || NTable || BTable)
 	{
-        routingHelper.PrintRoutingTableEvery (Seconds (50), nodes.Get (41), routingStream);
+        routingHelper.PrintRoutingTableEvery (Seconds (50), nodes.Get (9), routingStream);
 	}   
   
-  Ptr<V4Ping> app = CreateObject<V4Ping> ();
-  
-  
-  Ptr<Ipv4> ipv4Server = nodes.Get (0)->GetObject<Ipv4> ();
-  //Ptr<Ipv4> ipv4Server = nodes.Get (nodes.GetN () - 1)->GetObject<Ipv4> ();
-  app->SetAttribute ("Remote", Ipv4AddressValue (ipv4Server->GetAddress (1, 0).GetLocal ()));
-  app->SetAttribute ("Verbose", BooleanValue (true));
-
-  nodes.Get (41)->AddApplication (app);
-  
-  app->SetStartTime (Seconds (20.0));
-  app->SetStopTime (Seconds (simTime));
+//  Ptr<V4Ping> app = CreateObject<V4Ping> ();
+//  
+//  
+//  Ptr<Ipv4> ipv4Server = nodes.Get (37)->GetObject<Ipv4> ();
+//  //Ptr<Ipv4> ipv4Server = nodes.Get (nodes.GetN () - 1)->GetObject<Ipv4> ();
+//  app->SetAttribute ("Remote", Ipv4AddressValue (ipv4Server->GetAddress (1, 0).GetLocal ()));
+//  app->SetAttribute ("Verbose", BooleanValue (true));
+//
+//  nodes.Get (9)->AddApplication (app);
+//  
+//  app->SetStartTime (Seconds (0.0));
+//  app->SetStopTime (Seconds (simTime));
  
   
 	Simulator::Stop (Seconds (simTime));    

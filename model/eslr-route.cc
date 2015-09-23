@@ -1476,8 +1476,8 @@ RoutingTable::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table ta
 
   if (table == eslr::MAIN)
   {
-    *os << "Destination         Gateway          If  Seq#    Metric  Validity     Changed Expire in (s)" << '\n';
-    *os << "------------------  ---------------  --  ------  ------  --------     ------- -------------" << '\n';
+//    *os << "Destination         Gateway          If  Seq#    Metric  Validity     Changed Expire in (s)" << '\n';
+//    *os << "------------------  ---------------  --  ------  ------  --------     ------- -------------" << '\n';
 
     for (RoutesCI it = m_mainRoutingTable.begin ();  it!= m_mainRoutingTable.end (); it++)
     {
@@ -1485,42 +1485,47 @@ RoutingTable::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table ta
       
       // for testing purposes, all route records available in the table are printed.
       // customize it by un-commenting the following lines
-      eslr::Validity validity = route->GetValidity ();
+      //eslr::Validity validity = route->GetValidity ();
 
-      if (validity == eslr::VALID || validity == eslr::LHOST || validity == eslr::INVALID || validity == eslr::DISCONNECTED)
-      {      
-          std::ostringstream dest, gateway, val;
+      //if (validity == eslr::VALID || validity == eslr::LHOST || validity == eslr::INVALID || validity == eslr::DISCONNECTED)
+      //{
+      
+      if (route->GetDestNetworkMask ().IsMatch ("10.0.0.146", route->GetDestNetwork ()))      
+      {
+      
+        std::ostringstream dest, gateway, val;
         
-          dest << route->GetDestNetwork () << "/" << int (route->GetDestNetworkMask ().GetPrefixLength ());
-          *os << std::setiosflags (std::ios::left) << std::setw (20) << dest.str ();
-          
-        gateway << route->GetGateway ();
-        *os << std::setiosflags (std::ios::left) << std::setw (17) << gateway.str ();
+        dest << route->GetDestNetwork ()/* << "/" << int (route->GetDestNetworkMask ().GetPrefixLength ())*/;
+        *os << std::setiosflags (std::ios::left) << std::setw (20) << dest.str ();
+//        
+//        gateway << route->GetGateway ();
+//        *os << std::setiosflags (std::ios::left) << std::setw (17) << gateway.str ();
+//        
+//        *os << std::setiosflags (std::ios::left) << std::setw (4) << route->GetInterface ();
+//        
+//        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetSequenceNo ();
         
-        *os << std::setiosflags (std::ios::left) << std::setw (4) << route->GetInterface ();
-        
-        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetSequenceNo ();
-        
-          *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetMetric ();
-        
-        if (route->GetValidity () == eslr::VALID)
-          val << "VALID";
-        else if (route->GetValidity () == eslr::INVALID)
-          val << "INVALID";
-        else if (route->GetValidity () == eslr::LHOST)
-          val << "Loc. Host";
-        else if (route->GetValidity () == eslr::DISCONNECTED)
-          val << "Disconnected";
-        else
-          val << "garbage";            
-        *os << std::setiosflags (std::ios::left) << std::setw (13) << val.str ();
-        
-        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetRouteChanged ();
-        
-        *os << std::setiosflags (std::ios::left) << std::setw (10) << Simulator::GetDelayLeft (it->second).GetSeconds ();
+        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetMetric ();
+//        
+//        if (route->GetValidity () == eslr::VALID)
+//          val << "VALID";
+//        else if (route->GetValidity () == eslr::INVALID)
+//          val << "INVALID";
+//        else if (route->GetValidity () == eslr::LHOST)
+//          val << "Loc. Host";
+//        else if (route->GetValidity () == eslr::DISCONNECTED)
+//          val << "Disconnected";
+//        else
+//          val << "garbage";            
+//        *os << std::setiosflags (std::ios::left) << std::setw (13) << val.str ();
+//        
+//        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetRouteChanged ();
+//        
+//        *os << std::setiosflags (std::ios::left) << std::setw (10) << Simulator::GetDelayLeft (it->second).GetSeconds ();
        
         *os << '\n';
-      }        
+        }
+      //}        
     }
   }
   else if (table == eslr::BACKUP)
