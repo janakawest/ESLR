@@ -490,7 +490,7 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
     bool foundInMain, foundPrimaryRoute, foundBackupRoute;
     
     // Main Route (Which is in the Main Table)       
-    RoutesI mainRoute =  FindGivenRouteRecord (routingTableEntry, foundInMain, eslr::MAIN);
+		RoutesI mainRoute =  FindGivenRouteRecord (routingTableEntry, foundInMain, eslr::MAIN);
 
     // Primary route (Main route's reference, which is in the Backup Table)
     RoutesI primaryRoute = FindRouteInBackupForDestination (routingTableEntry->GetDestNetwork (), 
@@ -575,6 +575,7 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
 			}
 			else if (Simulator::GetDelayLeft (primaryRoute->second) >= 0)
 			{
+				// TODO compare the sequence number and update
 			  // As a primary route is there (always) 
 			  // the main route updates according to the primary route
 			  NS_LOG_DEBUG ("Update the main route " << *mainRoute->first << "based on the primary route.");
@@ -840,8 +841,8 @@ RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time inv
       // Find any backup route that has lower cost than the primary route
       // Make sure that the main route has the lowest cost available.
       if (foundBackupRoute && 
-         (secondaryRoute->first->GetMetric () < routingTableEntry->GetMetric ()))
-      {      
+         (secondaryRoute->first->GetMetric () < routingTableEntry->GetMetric ()))  
+      { 
         Ipv4Address destination = secondaryRoute->first->GetDestNetwork ();
         Ipv4Mask mask = secondaryRoute->first->GetDestNetworkMask ();
         Ipv4Address gateway = secondaryRoute->first->GetGateway ();
@@ -892,7 +893,7 @@ RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time inv
         return retVal = true;
       }
       else
-      {      		
+      {
         RoutingTableEntry* m_route = new RoutingTableEntry (routingTableEntry->GetDestNetwork (),
                                                             routingTableEntry->GetDestNetworkMask (),
                                                             routingTableEntry->GetGateway (), 
@@ -962,7 +963,7 @@ RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time inv
         delete primaryRoute->first;
         primaryRoute->first = route;           
 
-        if (routingTableEntry->GetMetric () == primaryRoute->first->GetMetric ())
+        if (routingTableEntry->GetMetric () >= primaryRoute->first->GetMetric ()) // A critical update >= to prevent route oscillation
         {
           // As the cost is same, the event will not cancel off.
           // let the event to be expired and move/update the route to main table.
@@ -1073,7 +1074,7 @@ RoutingTable::InvalidateRoutesForGateway (Ipv4Address gateway,  Time invalidateT
       {
         p.invalidateType = eslr::BROKEN_NEIGHBOR;
         it->second.Cancel ();
-        it->second  = Simulator::Schedule (MicroSeconds (m_rng->GetValue (0.0, 2.0)),
+        it->second  = Simulator::Schedule (MilliSeconds (m_rng->GetValue (0.0, 2.0)),
                                            &RoutingTable::InvalidateRoute, 
                                            this, it->first, p);
       }
@@ -1089,7 +1090,7 @@ RoutingTable::InvalidateRoutesForGateway (Ipv4Address gateway,  Time invalidateT
       {
         p.invalidateType = eslr::BROKEN;      
         it->second.Cancel ();
-        it->second  = Simulator::Schedule (MicroSeconds (m_rng->GetValue (0.0, 2.0)),
+        it->second  = Simulator::Schedule (MilliSeconds (m_rng->GetValue (0.0, 2.0)),
                                            &RoutingTable::InvalidateRoute,
                                            this, it->first, p);
       }
@@ -1476,7 +1477,7 @@ RoutingTable::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table ta
 
   if (table == eslr::MAIN)
   {
-//    *os << "Destination         Gateway          If  Seq#    Metric  Validity     Changed Expire in (s)" << '\n';
+    *os << "Destination         Gateway          If  Seq#    Metric  Validity     Changed Expire in (s)" << '\n';
 //    *os << "------------------  ---------------  --  ------  ------  --------     ------- -------------" << '\n';
 
     for (RoutesCI it = m_mainRoutingTable.begin ();  it!= m_mainRoutingTable.end (); it++)
@@ -1490,41 +1491,41 @@ RoutingTable::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table ta
       //if (validity == eslr::VALID || validity == eslr::LHOST || validity == eslr::INVALID || validity == eslr::DISCONNECTED)
       //{
       
-      if (route->GetDestNetworkMask ().IsMatch ("10.0.0.146", route->GetDestNetwork ()))      
-      {
+      //if (route->GetDestNetworkMask ().IsMatch ("10.0.0.146", route->GetDestNetwork ()))      
+      //{
       
         std::ostringstream dest, gateway, val;
         
         dest << route->GetDestNetwork ()/* << "/" << int (route->GetDestNetworkMask ().GetPrefixLength ())*/;
         *os << std::setiosflags (std::ios::left) << std::setw (20) << dest.str ();
-//        
-//        gateway << route->GetGateway ();
-//        *os << std::setiosflags (std::ios::left) << std::setw (17) << gateway.str ();
-//        
-//        *os << std::setiosflags (std::ios::left) << std::setw (4) << route->GetInterface ();
-//        
-//        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetSequenceNo ();
+        
+        gateway << route->GetGateway ();
+        *os << std::setiosflags (std::ios::left) << std::setw (17) << gateway.str ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (4) << route->GetInterface ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetSequenceNo ();
         
         *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetMetric ();
-//        
-//        if (route->GetValidity () == eslr::VALID)
-//          val << "VALID";
-//        else if (route->GetValidity () == eslr::INVALID)
-//          val << "INVALID";
-//        else if (route->GetValidity () == eslr::LHOST)
-//          val << "Loc. Host";
-//        else if (route->GetValidity () == eslr::DISCONNECTED)
-//          val << "Disconnected";
-//        else
-//          val << "garbage";            
-//        *os << std::setiosflags (std::ios::left) << std::setw (13) << val.str ();
-//        
-//        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetRouteChanged ();
-//        
-//        *os << std::setiosflags (std::ios::left) << std::setw (10) << Simulator::GetDelayLeft (it->second).GetSeconds ();
+        
+        if (route->GetValidity () == eslr::VALID)
+          val << "VALID";
+        else if (route->GetValidity () == eslr::INVALID)
+          val << "INVALID";
+        else if (route->GetValidity () == eslr::LHOST)
+          val << "Loc. Host";
+        else if (route->GetValidity () == eslr::DISCONNECTED)
+          val << "Disconnected";
+        else
+          val << "garbage";            
+        *os << std::setiosflags (std::ios::left) << std::setw (13) << val.str ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (8) << route->GetRouteChanged ();
+        
+        *os << std::setiosflags (std::ios::left) << std::setw (10) << Simulator::GetDelayLeft (it->second).GetSeconds ();
        
         *os << '\n';
-        }
+        //}
       //}        
     }
   }
@@ -1633,7 +1634,7 @@ RoutingTable::IncrementSeqNo ()
   {
     if ((it->first->GetDestNetwork () != "127.0.0.1") && (it->first->GetGateway () == Ipv4Address::GetZero ()))
     {        
-      it->first->SetSequenceNo (it->first->GetSequenceNo () + 2);
+      it->first->SetSequenceNo (it->first->GetSequenceNo () + 1);
       it->first->SetRouteChanged (false);
     }
   }

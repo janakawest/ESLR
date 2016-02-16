@@ -28,10 +28,10 @@ namespace eslr {
  * Header sizes of the ESLR Protocol
  */
 
-  #define RUM_SIZE 16 //!< Route Update Message (RUM) Size
-  #define KAM_SIZE 16 //!< Keep-alive Message (KAM) Size
-  #define SRC_SIZE 16 //!< Server-router Communication (SRC) Size
-  #define ESLR_BASE_SIZE 7 //!< ESLR Header Base Size
+  #define RUM_SIZE 17 //!< Route Update Message (RUM) Size (No CCVs)
+  #define KAM_SIZE 15 //!< Keep-alive Message (KAM) Size
+  #define SRCH_SIZE 20 //!< Server-router Communication (SRC) Size
+  #define ESLR_BASE_SIZE 8 //!< ESLR Header Base Size
 
 /**
  * Authentication types used in route management
@@ -48,6 +48,7 @@ namespace eslr {
   enum KamHeaderCommand
   {
     HELLO = 0x01,
+		HI = 0x02,
     // Rest of the commands are TBI
   };
 
@@ -80,6 +81,9 @@ namespace eslr {
     OE = 0x01, //!< One Entry 
     NE = 0x02, //!< Number of Entries specified in the ESLRRoutingHeader::NoE
     ET = 0x03, //!< Entire Table
+		ND = 0x04, //!< Specially maintained to initial route discovery.
+							 //   Those who send initial route request, should send this and the packet
+							 //   will be trated as ET
     RESPOND = 0xff, //!< For all response messages
   };
 
@@ -92,6 +96,7 @@ enum Validity
   VALID = 0x01, //!< Valid Neighbor or Route Record
   DISCONNECTED = 0x02, //!< Disconnected Route Record
   LHOST = 0x03, //!< Host route for the loop-back interface. This is not used for route advertisements
+	VOID = 0x04, //!< The initial state that the neighbors are added to  
 };
 
 /**

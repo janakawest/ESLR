@@ -384,7 +384,7 @@ main (int argc, char *argv[])
 	statC1->SetDefaultRoute (sendai->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal (), 1, 1);
 	// setting up the 'Sendai' as the default gateway of the 'C2' 
 	Ptr<Ipv4StaticRouting> statC2 = statRouting.GetStaticRouting (c2->GetObject<Ipv4> ());
-	statC2->SetDefaultRoute (sendai->GetObject<Ipv4> ()->GetAddress (2, 0).GetLocal (), 1, 1);
+	statC2->SetDefaultRoute (sendai->GetObject<Ipv4> ()->GetAddress (3, 0).GetLocal (), 1, 1);
 	// setting up the 'Nezu' as the default gateway of the 'C3' 
 	Ptr<Ipv4StaticRouting> statC3 = statRouting.GetStaticRouting (c3->GetObject<Ipv4> ());
 	statC3->SetDefaultRoute (nezu->GetObject<Ipv4> ()->GetAddress (5, 0).GetLocal (), 1, 1);
@@ -541,7 +541,7 @@ main (int argc, char *argv[])
 	apps.Start (Seconds (20.0));
 	apps.Stop (Seconds (350.0));												
 */	
-  NS_LOG_INFO ("Enable Printing Options.");
+  //NS_LOG_INFO ("Enable Printing Options.");
   EslrHelper routingHelper;
   Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> (&std::cout);
 

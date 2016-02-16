@@ -1,12 +1,12 @@
 # -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 
 def build(bld):
-    obj = bld.create_ns3_program('eslr-example', ['eslr', 'netanim', 'point-to-point', 'internet', 'network', 'applications', 'visualizer'])
+    obj = bld.create_ns3_program('eslr-example', ['eslr', 'netanim', 'point-to-point', 'internet', 'network', 'applications'])
     obj.source = 'eslr-example.cc'
 
-    obj = bld.create_ns3_program('eslr-wide', ['eslr', 'netanim', 'point-to-point', 'internet', 'network', 'applications', 'visualizer'])
+    obj = bld.create_ns3_program('eslr-wide', ['eslr', 'netanim', 'point-to-point', 'internet', 'network', 'applications'])
     obj.source = 'eslr-wide.cc'
     
-    obj = bld.create_ns3_program('eslr-rocketfuel', ['eslr', 'netanim', 'point-to-point', 'internet', 'network', 'applications', 'topology-read','visualizer'])
+    obj = bld.create_ns3_program('eslr-rocketfuel', ['eslr', 'netanim', 'point-to-point', 'internet', 'network', 'applications', 'topology-read'])
     obj.source = 'eslr-RocketFuel.cc'          
 

@@ -49,7 +49,8 @@
 #include "ns3/ipv4-static-routing-helper.h"
 #include "ns3/ipv4-routing-table-entry.h"
 
-#include "ns3/pyviz.h"
+#include "ns3/v4ping-helper.h"
+//#include "ns3/pyviz.h"
 
 using namespace ns3;
 
@@ -88,7 +89,7 @@ main (int argc, char *argv[])
 
   CommandLine cmd;
 
-	{ PyViz v; }
+	//{ PyViz v; }
 
   cmd.AddValue ("verbose", "Tell application to log if true", verbose);
   cmd.AddValue ("NTable", "Print the Neighbor Table", NTable);
@@ -100,8 +101,10 @@ main (int argc, char *argv[])
  	NS_LOG_INFO ("Create nodes.");
   Ptr<Node> src = CreateObject<Node> ();
   Names::Add ("SrcNode", src);
+	src->SetNodeType (Node::CLIENT_NODE);
   Ptr<Node> dst = CreateObject<Node> ();
   Names::Add ("DstNode", dst);
+	dst->SetNodeType (Node::SERVER_NODE);
   Ptr<Node> a = CreateObject<Node> ();
   Names::Add ("RouterA", a);
   Ptr<Node> b = CreateObject<Node> ();
@@ -202,12 +205,12 @@ main (int argc, char *argv[])
         routingHelper.PrintRoutingTableEvery (Seconds (30), b, routingStream);
         
   
-    NS_LOG_INFO ("Setting up UDP echo server and client.");
+/*    NS_LOG_INFO ("Setting up UDP echo server and client.");
 	//create server  	
 	uint16_t port = 9; // well-known echo port number
 	UdpEchoServerHelper server (port);
 	ApplicationContainer apps = server.Install (dst); 
-	
+
 	apps.Start (Seconds (10.0));
 	apps.Stop (Seconds (445.0));
 	
@@ -220,12 +223,25 @@ main (int argc, char *argv[])
   client.SetAttribute ("PacketSize", UintegerValue (1024));
   
   apps = client.Install (src);
+	client.SetFill (apps.Get (0), "abcdefghijklmnopqrstuvwxyz1");
   
-  apps.Start (Seconds (40.0));
+  apps.Start (Seconds (102.0));
 	apps.Stop (Seconds (420.0));
 
+*/
+/*			Ptr<V4Ping> app = CreateObject<V4Ping> (); 
+
+			Ptr<Ipv4> ipv4Server = dst->GetObject<Ipv4> (); 
+			app->SetAttribute ("Remote", Ipv4AddressValue (ipv4Server->GetAddress (1, 0).GetLocal ()));
+			app->SetAttribute ("Verbose", BooleanValue (true));
+			src->AddApplication (app);
+			app->SetStartTime (Seconds (102.0));
+			app->SetStopTime (Seconds (420.0));
+*/
+
+
       Simulator::Schedule (Seconds (400), &MakeLinkDown, b, d, 3, 2); 
-      Simulator::Schedule (Seconds (550), &MakeLinkUp, b, d, 3, 2);
+//      Simulator::Schedule (Seconds (550), &MakeLinkUp, b, d, 3, 2);
       
 //      Simulator::Schedule (Seconds (410), &MakeLinkDown, b, c, 2, 2); 
 //      Simulator::Schedule (Seconds (550), &MakeLinkUp, b, c, 2, 2); 
@@ -237,7 +253,7 @@ main (int argc, char *argv[])
 //      Simulator::Schedule (Seconds (185), &MakeInterfaceUp, b, 3); 
       
 
-	Simulator::Stop (Seconds (3600));
+	Simulator::Stop (Seconds (1000));
   Simulator::Run ();
   Simulator::Destroy ();
   return 0;

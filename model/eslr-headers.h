@@ -38,17 +38,23 @@ namespace eslr {
  * \brief ESLR Route Update Message (RUM)
  */
 /**	-----------------------------RUM-------------------------------
-	* |      0        |      1        |      2        |      3      |
-	* 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |				Seq#		                |			  Route tag	            |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |             				      Metric                            |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |				            Network Address / Host Address		  		  |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |						               Network Mask		          				  |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	|      0        |      1        |      2        |      3      |
+	0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+	+---------------+---------------+---------------+-------------+
+	|			   				  						 Seq#									    		  |
+	+---------------+---------------+---------------+-------------+
+	|    				    	  					Metric						 			 			  |
+	+---------------+---------------+---------------+-------------+
+	|															NOTUSE						|C|D|  <tag>	|
+	+---------------+---------------+---------------+-------------+
+	|								Network Address / Host Address							  |
+	+---------------+---------------+---------------+-------------+
+	|						  	 							NetMask												  |
+	+---------------+---------------+---------------+-------------+
+		Route tag	:	
+			C 		:		Connected routes
+			D 		:		Poisioned routes
+			<tag>	:		For route conversions
 */
 class ESLRrum : public Header
 {
@@ -121,13 +127,37 @@ public:
    * \param routeTag tag value
    * \return the route tag value
    */
-  uint16_t GetrouteTag () const
+  uint8_t GetrouteTag () const
   {
     return m_routeTag;
   }
-  void SetrouteTag (uint16_t routeTag)
+  void SetrouteTag (uint8_t routeTag)
   {
     m_routeTag = routeTag;
+  }
+
+  /**
+   * Get and Set the route flag by bts
+   * Connected Routes
+   * Poisoned Routes
+	 * for future use
+   * */
+  void SetCbit (bool flag)
+  {
+    (flag) ? m_routeTag |= (1 << 0) :  m_routeTag &= ~(1 << 0);
+  }
+  bool GetCbit (void) const
+  {
+    return (m_routeTag & (1 << 0));
+  }
+
+  void SetDbit (bool flag)
+  {
+    (flag) ? m_routeTag |= (1 << 1) :  m_routeTag &= ~(1 << 1);
+  }
+  bool GetDbit (void) const
+  {
+    return (m_routeTag & (1 << 1));
   }
 
   /**
@@ -158,14 +188,15 @@ public:
 	{
     return m_mask;
 	}
-
+	//TODO: Get and set CCV and transmit them
 
 private:
   uint16_t m_sequenceNumber; //!< sequence number
   uint32_t m_matric; //!< metric (time to reach the destination)
-  uint16_t m_routeTag; //!< route tag
   Ipv4Address m_destination; //!< destination network/host address
   Ipv4Mask m_mask; //!< destination network/host mask
+	// uint8_t K1, K2, K3; //!< CCValues
+	uint8_t m_routeTag; //!< reserved for future use of route conversion |C|D|<future>|
   
 };// end of class ESLRRouteUpdateMessage
 /**
@@ -182,17 +213,17 @@ std::ostream & operator << (std::ostream & os, const ESLRrum & h);
  * \brief ESLR Hello and Keep Alive Message (KAM) header
  */
 /**	----------------Keep Alive Message Header----------------------
-	* |      0        |      1        |      2        |      3      |
-	* 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |	Command		    |	Auth Type	    |			    Auth Data     		  |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |				                   Neighbor ID        							  |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |						                Gateway 	          						  |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |						                  Mask	  		        					  |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	|      0        |      1        |      2        |      3      |
+	0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+	+---------------+---------------+---------------+-------------+
+	|		Command		  |		Auth_Type		|						Auth_Data				  |
+	+---------------+---------------+---------------+-------------+
+	|		Identifire	|		Not_Use			| 				Neighbor_ID				  |
+	+---------------+---------------+---------------+-------------+
+	|						     						 Gateway IP					 						  |
+	+---------------+---------------+---------------+-------------+
+	|						     						 NetMask						  					  |
+	+---------------+---------------+---------------+-------------+
 */
 class KAMHeader : public Header
 {
@@ -276,15 +307,29 @@ public:
 	}
 
   /**
+   * \brief Get and Set discove ID'.
+   * \param neighborID discover ID
+   * \return the discover ID
+   */
+  void SetIdentifier (uint16_t identifier)
+  {
+    m_identifier = identifier;
+  }
+  uint16_t GetIdentifier () const
+  {
+    return m_identifier;
+  }
+
+  /**
    * \brief Get and Set neghbor's ID'.
    * \param neighborID the nieghbor's ID
    * \return the nieghbor's ID
    */
-	void SetNeighborID (uint32_t neighborID)
+	void SetNeighborID (uint16_t neighborID)
 	{
     m_neighborID = neighborID;
 	}
-	uint32_t GetNeighborID () const
+	uint16_t GetNeighborID () const
 	{
     return m_neighborID;
 	}
@@ -321,7 +366,8 @@ private:
   uint8_t m_command;  //!< message command
   uint8_t m_authType;  //!< authentication type
   uint16_t m_authData;  //!< authentication data
-  uint32_t m_neighborID;  //!< neighbor's ID
+	uint8_t m_identifier;	//!< Neighbor Identifier; a randomly genarated number
+  uint16_t m_neighborID;  //!< neighbor's ID
   Ipv4Address m_gateway;  //!< neighbor's address
   Ipv4Mask m_gatewayMask;  //!< neighbor's network mask
 };// end of class KeepAliveMessageHeader
@@ -339,17 +385,19 @@ std::ostream & operator << (std::ostream & os, const KAMHeader & h);
  * \brief ESLR uses Server Router Communication (SRC) header for Server Router Communication protocol
  */
 /**	--------------server-router communication header---------------
-	* |      0        |      1        |      2        |      3      |
-	* 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |				                       Mue                    		    | 
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |                             Lambda                          |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |				                   Server Address         					  |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |						              Network Mask		          				  |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	|      0        |      1        |      2        |      3      |
+	0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+	+---------------+---------------+---------------+-------------+
+	|						 Seq. No						|N|S|				 Not Use				  |	
+	+---------------+---------------+---------------+-------------+
+	|							   							 Mue													  |
+	+---------------+---------------+---------------+-------------+
+	|               			  			Lambda								          |
+	+---------------+---------------+---------------+-------------+
+	|				          				Server Address										  |
+	+---------------+---------------+---------------+-------------+
+	|						     							NetMask												  |
+	+---------------+---------------+---------------+-------------+
 */
 class SRCHeader : public Header
 {
@@ -388,6 +436,44 @@ public:
    * \return size of the packet
    */
   virtual uint32_t Deserialize (Buffer::Iterator start);
+
+  /**
+   * \brief Get and Set the sequence number.
+   * \param seqNo sequence number
+   * \return the sequence number value
+   */
+  void SetSequenceNumber (uint16_t seqNo)
+  {
+    m_seqNo = seqNo;
+  }
+  uint32_t GetSequenceNumber () const
+  {
+    return m_seqNo;
+  }
+	/**
+	 * Get and Set the flag set 
+	 * The network flag and the Server flag.
+	 * If administrator sends a average value of the servers of a data center or a cloud, the N bit should be 
+	 * set. 
+	 * Otherwise, the S bit should be set in order to indiacate that the information about a server.
+	 * However, non of these wont consider unless the K1 CCV is enable on the ESLRHeader*/
+	
+	void SetNBit (bool flag)
+	{
+		(flag) ? m_flagSet |= (1 << 15) :  m_flagSet &= ~(1 << 15);
+	}
+	bool GetNBit (void) const
+	{
+		return (m_flagSet & (1 << 15));
+	}
+  void SetSBit (bool flag)
+  {
+    (flag) ? m_flagSet |= (1 << 14) :  m_flagSet &= ~(1 << 14);
+  }
+  bool GetSBit (void) const
+  {
+    return (m_flagSet & (1 << 14));
+  }
 
   /**
    * \brief Get and Set Mue value.
@@ -446,6 +532,8 @@ public:
 	}
 
 private:
+	uint16_t m_seqNo;	//!< Sequence number of the advertisement
+	uint16_t m_flagSet; //!< Flag set of the advertisement |Net|Ser|future use|
   uint32_t m_mue;  //!< Mue value (the server's average service rate)
   uint32_t m_lambda;  //!< Lambda value (the server's average packet arrival rate)
   Ipv4Address m_serverAddress;  //!< server address
@@ -465,15 +553,23 @@ std::ostream & operator << (std::ostream & os, const SRCHeader & h);
  * \brief ESLR Routing Header
  */
 /**	-------------------------ESLR header---------------------------
-	* |      0        |      1        |      2        |      3      |
-	* 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |    Command    |   RU. Type    |   REQ. Type   |    NoE      |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |	Auth Type	    |		      NA		|			     Auth DAta          |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	* |                            RUM ~                            |
-	* +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	|      0        |      1        |      2        |      3      |
+	0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+	+---------------+---------------+---------------+-------------+
+	|    Command    |   RU_Command  |    REQ_Type   |    NoE      |
+	+---------------+---------------+---------------+-------------+
+	|FT|P|T|C|D|not |	 Auth_Type	  |	 					Auth_Data				  |
+	+---------------+---------------+---------------+-------------+
+	|                              		                          	|
+	~							   							 RUM							  						~
+	|                                							  							|
+	+---------------+---------------+---------------+-------------+
+	Advertisement Options
+		FT			: Fast Trig. Update
+		P				: Periodic Update
+		T				: Trig. Update
+		C				: Connected routes
+		D				: Disconnected routes
 */
 class ESLRRoutingHeader : public Header
 {
@@ -571,6 +667,68 @@ public:
     m_noe = m_rumList.size();
   }
 
+	/**
+	 * Get and Set the advertisement type
+	 * Fast Trig. Update
+	 * Periodic Update
+	 * Triggered Update
+	 * Connected Routes
+	 * Poisoned Routes
+	 * */
+	void SetFastTrigUpdate (bool flag)
+	{
+    (flag) ? m_advertisementType |= (1 << 0) :  m_advertisementType &= ~(1 << 0);
+	}	
+	bool GetFastTrigUpdate (void) const
+	{
+		return (m_advertisementType & (1 << 0));
+	}
+
+  void SetPeriodicUpdate (bool flag)
+  {
+    (flag) ? m_advertisementType |= (1 << 1) :  m_advertisementType &= ~(1 << 1);
+  }
+  bool GetPeriodicUpdate (void) const
+  {
+    return (m_advertisementType & (1 << 1));
+  }
+
+  void SetTrigUpdate (bool flag)
+  {
+    (flag) ? m_advertisementType |= (1 << 2) :  m_advertisementType &= ~(1 << 2);
+  }
+  bool GetTrigUpdate (void) const
+  {
+    return (m_advertisementType & (1 << 2));
+  }
+
+  void SetCbit (bool flag)
+  {
+    (flag) ? m_advertisementType |= (1 << 3) :  m_advertisementType &= ~(1 << 3);
+  }
+  bool GetCbit (void) const
+  {
+    return (m_advertisementType & (1 << 3));
+  }
+
+  void SetDbit (bool flag)
+  {
+    (flag) ? m_advertisementType |= (1 << 4) :  m_advertisementType &= ~(1 << 4);
+  }
+  bool GetDbit (void) const
+  {
+    return (m_advertisementType & (1 << 4));
+  }
+
+	void SetAdvertisementTypeZero (void)
+	{
+		m_advertisementType = 0;
+	}
+	bool GetAdvertisementType (void) const
+	{
+		return m_advertisementType;
+	}
+
   /**
    * \brief Get and set the authentication type in route message exchange
    * \param the authentication type
@@ -660,9 +818,10 @@ private:
   uint8_t m_command; //!< command type
   uint8_t m_ruType; //!< advertisement type
   uint8_t m_reqType; //!< request type
-  uint8_t m_noe;     //!< number of RUMs are in the message
-  uint8_t m_authType;     //!< Authentication Type
-  uint16_t m_authData;     //!< number of RUMs are in the message
+  uint8_t m_noe;	//!< number of RUMs are in the message
+  uint8_t m_authType;	//!< Authentication Type
+  uint16_t m_authData;	//!< number of RUMs are in the message
+	uint8_t m_advertisementType;	//!< |Fast Trig|Periodic|Trig|Connected|Disconnected|NT|
 
   std::list<ESLRrum> m_rumList; //!< list of the RUMs in the message
   std::list<KAMHeader> m_helloList; //!< list of the RUMs in the message

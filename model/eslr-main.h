@@ -121,7 +121,16 @@ private:
    * \param socket the socket the packet was received to.
    */
   void Receive (Ptr<Socket> socket);
-
+	/**
+	 * \brief Handle the fast triggered update messages about the broken interfaces
+	 * this method consideres Splithorison using two methods,
+	 * 1. do not send route updates to the interface the node received fast triggered update
+	 * 2. do not send route update to the actual gateway that the route is learned from
+	 *
+	 * \param hdr ESLRheader
+	 * \pram senderAddress the address of the sender who sent the fast triggered update
+	 * \param incominginterface is the interface node received the fast triggered update*/
+	void HandleFastTrigUpdates (ESLRRoutingHeader hdr, Ipv4Address senderAddress, uint32_t incomingInterface);
   /**
    * \brief Handle Keep Alive Messages
    *
@@ -140,6 +149,15 @@ private:
    */  
   void HandleSrcRequests (ESLRRoutingHeader hdr, Ipv4Address senderAddress, uint32_t incomingInterface);
 
+	/**
+	 * \brief Send a hello message at the begening*/
+	void SendHelloMessage ();	
+
+	/**
+		* \brief send a hello message for a selected interface 
+		*	\param interface the selected interface*/
+	void SendHelloMessageForInterface (uint32_t interface);
+ 
   /**
    * \brief Send Keep alive Messages.  
    */
@@ -381,6 +399,7 @@ private:
 
   EventId m_nextPeriodicUpdate; //!< Next periodic update event
   EventId m_nextTriggeredUpdate; //!< Next triggered update event
+	uint8_t m_K1, m_K2, m_K3; //!< The CCV values
 // \}
 
 // \name for debugging

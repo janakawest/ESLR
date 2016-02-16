@@ -37,13 +37,14 @@ namespace eslr {
  * Neighbor Table Entry
 */
 
-  NeighborTableEntry::NeighborTableEntry (uint32_t neighborID, 
+  NeighborTableEntry::NeighborTableEntry (uint16_t neighborID, 
                       Ipv4Address neighborAddress,
                       Ipv4Mask neighborMask, 
                       uint32_t interface, 
                       Ptr<Socket> socket,
                       eslr::AuthType authType,
                       uint16_t authData,
+											uint8_t identifier,
 											eslr::Validity validity ): m_neighborID (neighborID),
                                           m_neighborAddress (neighborAddress),
                                           m_neighborMask (neighborMask),
@@ -51,6 +52,7 @@ namespace eslr {
                                           m_socket (socket),
                                           m_authType (authType),
                                           m_authData (authData),
+																					m_identifier (identifier),
 																					m_validity (validity)
   {
     // Constructor
@@ -67,9 +69,6 @@ namespace eslr {
 
   NeighborTable::NeighborTable () 
   {
-    m_routeTimeoutDelay = Seconds (0); //!< Delay that determines the neighbor is UNRESPONSIVE
-    m_routeGarbageCollectionDelay = Seconds (0); //!< Delay before remove UNRESPONSIVE route/neighbor record
-    m_routeSettlingDelay = Seconds (0); //!< Delay that determins a particular route is stable
   }
   NeighborTable::~NeighborTable (){/*Destructor*/}
 
@@ -80,21 +79,58 @@ namespace eslr {
   }
 
   void 
-  NeighborTable::AddNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime, RoutingTable& routingTable, Time timeoutDelay, Time garbageCollectionDelay, Time settlingDelay)
+  NeighborTable::AddNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime)
   {    
     NS_LOG_FUNCTION ("Added a new Neighbor " 
                       << neighborEntry->GetNeighborID());
     
-    EventId invalidateEvent = Simulator::Schedule (invalidateTime, &NeighborTable::InvalidateNeighbor, this, neighborEntry, invalidateTime, deleteTime, routingTable);
+    EventId invalidateEvent = Simulator::Schedule (invalidateTime, &NeighborTable::InvalidateNeighbor, this, neighborEntry, deleteTime);
     m_neighborTable.push_front(std::make_pair (neighborEntry,invalidateEvent));
-
-    m_routeTimeoutDelay = timeoutDelay;
-    m_routeGarbageCollectionDelay = garbageCollectionDelay;
-    m_routeSettlingDelay = settlingDelay;
   }
 
+	void 
+	NeighborTable::AddVoidNeighbor (NeighborTableEntry *neighborEntry, Time removeTime)
+	{
+		NS_LOG_LOGIC ("Adding a neighbor in to void state " << 
+										neighborEntry->GetNeighborID());
+
+		EventId removeEvent = Simulator::Schedule (removeTime, &NeighborTable::DeleteVoidNeighbor, this, neighborEntry);
+		m_neighborTable.push_back(std::make_pair (neighborEntry,removeEvent)); 
+	}
+
+	bool 
+	NeighborTable::DeleteVoidNeighbor (NeighborTableEntry *neighborEntry)
+	{
+    NS_LOG_FUNCTION ("Delete the void neighbor " 
+                      << neighborEntry->GetNeighborID());
+
+    bool retVal = false;
+    NeighborI it;
+
+    for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
+    {
+      if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && 
+					(it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()) &&
+					(it->first->GetValidity () == VOID))
+      {
+        delete neighborEntry;
+        m_neighborTable.erase (it);
+        retVal = true;
+        break;
+      }
+    }
+    if (!retVal)
+    {
+      NS_LOG_LOGIC ("Neighbor not available: " 
+                      << int (neighborEntry->GetNeighborID ()));
+      return retVal;        
+    }
+    return retVal;
+
+	}
+
   bool 
-  NeighborTable::UpdateNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime, RoutingTable& routingTable)
+  NeighborTable::UpdateNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime)
   {
     NS_LOG_FUNCTION ("Update the neighbor " 
                       << neighborEntry->GetNeighborID());
@@ -109,7 +145,7 @@ namespace eslr {
         delete it->first;
         it->first = neighborEntry;
         it->second.Cancel ();
-        it->second = Simulator::Schedule (invalidateTime, &NeighborTable::InvalidateNeighbor, this, it->first, invalidateTime, deleteTime, routingTable);
+        it->second = Simulator::Schedule (invalidateTime, &NeighborTable::InvalidateNeighbor, this, it->first, deleteTime);
         retVal = true;
         break;
       }
@@ -125,7 +161,7 @@ namespace eslr {
   }
 
   bool 
-  NeighborTable::InvalidateNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime, RoutingTable& routingTable)
+  NeighborTable::InvalidateNeighbor (NeighborTableEntry *neighborEntry, Time deleteTime)
   {
     NS_LOG_FUNCTION ("Invalidate the neighbor " 
                       << neighborEntry->GetNeighborID());
@@ -142,7 +178,7 @@ namespace eslr {
 				it->first->SetValidity (eslr::INVALID);
         if (it->second.IsRunning ())
           it->second.Cancel ();
-        it->second = Simulator::Schedule (deleteTime, &NeighborTable::DeleteNeighbor, this, it->first, routingTable);
+        it->second = Simulator::Schedule (deleteTime, &NeighborTable::DeleteNeighbor, this, it->first);
         retVal = true;
         break;
       }
@@ -157,7 +193,7 @@ namespace eslr {
   }
 
   bool 
-  NeighborTable::DeleteNeighbor (NeighborTableEntry *neighborEntry, RoutingTable& routingTable)
+  NeighborTable::DeleteNeighbor (NeighborTableEntry *neighborEntry)
   {
     NS_LOG_FUNCTION ("Delete the neighbor " 
                       << neighborEntry->GetNeighborID());
@@ -169,15 +205,16 @@ namespace eslr {
     {
       if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && (it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()))
       {
-        // Along with the deleting neighbor,
+        // FIXME: 
+				// Along with the deleting neighbor,
         // invalidate all route records refering the neighbor as the gateway
-        routingTable.InvalidateRoutesForGateway (neighborEntry->GetNeighborAddress (),  
-                                                 m_routeTimeoutDelay, m_routeGarbageCollectionDelay,
-                                                 m_routeSettlingDelay, eslr::BACKUP);
-        routingTable.InvalidateRoutesForGateway (neighborEntry->GetNeighborAddress (),  
-                                                 m_routeTimeoutDelay, m_routeGarbageCollectionDelay,
-                                                 m_routeSettlingDelay,eslr::MAIN);
-                                                       
+        //routeInstance.InvalidateRoutesForGateway (neighborEntry->GetNeighborAddress (),
+        //                                         m_routeTimeoutDelay, m_routeGarbageCollectionDelay,
+        //                                         m_routeSettlingDelay, eslr::BACKUP);
+        //routeInstance.InvalidateRoutesForGateway (neighborEntry->GetNeighborAddress (),
+        //                                         m_routeTimeoutDelay, m_routeGarbageCollectionDelay,
+        //                                         m_routeSettlingDelay,eslr::MAIN);
+
         delete neighborEntry;
         m_neighborTable.erase (it);
         retVal = true;
@@ -264,6 +301,67 @@ namespace eslr {
     }
     return retVal;   
   }
+
+
+  bool
+  NeighborTable::FindNeighborForAddress (Ipv4Address address, NeighborI &retNeighborEntry)
+  {
+    bool retVal = false;
+    NeighborI it;
+    for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
+    {
+      if (it->first->GetNeighborAddress () == address) 
+      {
+        retNeighborEntry = it;
+        retVal = true;
+        break;
+      }
+    }
+    if (!retVal)
+    {
+      NS_LOG_LOGIC ("Neighbor not available: "
+                      << address);
+      return retVal;
+    }
+    return retVal;
+  }
+
+	bool 
+	NeighborTable::FindVoidNeighbor (uint16_t id)
+	{
+		bool retVal = false;
+		for (NeighborI it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
+		{
+			if ((it->first->GetNeighborID () == id) && (it->first->GetValidity () == eslr::VOID))
+			{
+				retVal = true;
+				break;
+			}
+		}
+		return retVal;
+	}
+
+	bool 
+	NeighborTable::FindVoidNeighborForAddress (Ipv4Address address, NeighborI &retNeighborEntry)
+	{
+		bool retVal = false;
+		NeighborI it;
+		for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
+		{
+			if ((it->first->GetNeighborAddress () == address) && (it->first->GetValidity () == eslr::VOID))
+			{
+				retNeighborEntry = it;
+				retVal = true;
+				break;
+			}
+		}
+		if (!retVal)
+		{
+			NS_LOG_LOGIC ("A void neighbor is not in the Table" << address);
+			return retVal;
+		}
+		return retVal;
+	}
 
   void 
   NeighborTable::ReturnNeighborTable (NeighborTableInstance &instance)
