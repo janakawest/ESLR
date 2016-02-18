@@ -143,7 +143,11 @@ RoutingTable::~RoutingTable ()
   /*dstrcter*/}
 
 void 
-RoutingTable::AddRoute (RoutingTableEntry *routingTableEntry, Time invalidateTime, Time deleteTime, Time settlingTime, eslr::Table table)
+RoutingTable::AddRoute (RoutingTableEntry *routingTableEntry, 
+		Time invalidateTime, 
+		Time deleteTime, 
+		Time settlingTime, 
+		eslr::Table table)
 {
   NS_LOG_DEBUG (this 
                   << routingTableEntry->GetDestNetwork () 
@@ -158,15 +162,18 @@ RoutingTable::AddRoute (RoutingTableEntry *routingTableEntry, Time invalidateTim
                   << int (routingTableEntry->GetDestNetworkMask ().GetPrefixLength ()));
 
     bool isAvailable = IsLocalRouteAvailable (routingTableEntry->GetDestNetwork (), 
-                                              routingTableEntry->GetDestNetworkMask ());
-    if (isAvailable)
+				routingTableEntry->GetDestNetworkMask ());
+    
+		if (isAvailable)
       return;
 
-    RoutingTableEntry* route1 = new RoutingTableEntry (routingTableEntry->GetDestNetwork (), 
-                                                       routingTableEntry->GetDestNetworkMask (), 
-                                                       routingTableEntry->GetGateway (), 
-                                                       routingTableEntry->GetInterface ());
-    route1->SetValidity (routingTableEntry->GetValidity ());
+    RoutingTableEntry* route1 = new RoutingTableEntry (
+				routingTableEntry->GetDestNetwork (), 
+				routingTableEntry->GetDestNetworkMask (), 
+				routingTableEntry->GetGateway (), 
+				routingTableEntry->GetInterface ());
+    
+		route1->SetValidity (routingTableEntry->GetValidity ());
     route1->SetSequenceNo (routingTableEntry->GetSequenceNo ());
     route1->SetRouteType (eslr::PRIMARY);
     route1->SetMetric (routingTableEntry->GetMetric ());
@@ -180,10 +187,14 @@ RoutingTable::AddRoute (RoutingTableEntry *routingTableEntry, Time invalidateTim
     p.table = eslr::MAIN;
 
     Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 2.0));
-    EventId invalidateEvent = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, route1, p);
+    EventId invalidateEvent = Simulator::Schedule (delay, 
+				&RoutingTable::InvalidateRoute, 
+				this, 
+				route1, 
+				p);
+
     m_mainRoutingTable.push_front (std::make_pair (route1, invalidateEvent));
 
-    // Note: along with the REF.1, this may cause a bug. A fix is mandetory
     delete routingTableEntry;    
   }
   else if (table == eslr::BACKUP)
@@ -192,24 +203,33 @@ RoutingTable::AddRoute (RoutingTableEntry *routingTableEntry, Time invalidateTim
     {
       // if settling time != 0, route is added to the backup table
       // route will move to the main routing table after the settling timer expires
-      NS_LOG_DEBUG ("Added a new Route to Backup Table"
-                    << " schedule an event to move it to main table after settling timer expires "     
-                    << routingTableEntry->GetDestNetwork () 
-                    << "/" << int (routingTableEntry->GetDestNetworkMask ().GetPrefixLength ()));
-
-      RoutingTableEntry* route2 = new RoutingTableEntry (routingTableEntry->GetDestNetwork (), 
-                                                         routingTableEntry->GetDestNetworkMask (), 
-                                                         routingTableEntry->GetGateway (), 
-                                                         routingTableEntry->GetInterface ());
-      route2->SetValidity (routingTableEntry->GetValidity ());
+      NS_LOG_DEBUG ("Added a new Route to Backup Table" << 
+					" schedule an event to move it to main table after settling timer expires "
+					<< routingTableEntry->GetDestNetwork () 
+					<< "/" 
+					<< int (routingTableEntry->GetDestNetworkMask ().GetPrefixLength ()));
+		 
+			RoutingTableEntry* route2 = new RoutingTableEntry (
+					routingTableEntry->GetDestNetwork (), 
+					routingTableEntry->GetDestNetworkMask (), 
+					routingTableEntry->GetGateway (), 
+					routingTableEntry->GetInterface ());
+      
+			route2->SetValidity (routingTableEntry->GetValidity ());
       route2->SetSequenceNo (routingTableEntry->GetSequenceNo ());
       route2->SetRouteType (eslr::PRIMARY);
       route2->SetMetric (routingTableEntry->GetMetric ());
       route2->SetRouteChanged (true); 
 
       Time delay = settlingTime + Seconds (m_rng->GetValue (0.0, 5.0));
-      EventId moveToMainEvent = Simulator::Schedule (delay, &RoutingTable::MoveToMain, this, 
-                                                     route2, invalidateTime, deleteTime, settlingTime);
+      EventId moveToMainEvent = Simulator::Schedule (delay, 
+					&RoutingTable::MoveToMain, 
+					this, 
+					route2, 
+					invalidateTime, 
+					deleteTime, 
+					settlingTime);
+
       m_backupRoutingTable.push_front (std::make_pair (route2, moveToMainEvent));
       
       delete routingTableEntry;
@@ -218,16 +238,17 @@ RoutingTable::AddRoute (RoutingTableEntry *routingTableEntry, Time invalidateTim
     {
       // if settling time = 0, this route is for the backup table
       // therefore, route will be added to the backup table and set invalidate timer 
-      NS_LOG_DEBUG ("Added a new Route to Backup Table " 
-                    <<  "and schedule an event to invalidate it after invalidate time expires" 
-                    << routingTableEntry->GetDestNetwork () 
-                    << "/" << int (routingTableEntry->GetDestNetworkMask ().GetPrefixLength ()));
+      NS_LOG_DEBUG ("Added a new Route to Backup Table " <<  
+					"and schedule an event to invalidate it after invalidate time expires" << 
+					routingTableEntry->GetDestNetwork () << 
+					"/" << int (routingTableEntry->GetDestNetworkMask ().GetPrefixLength ()));
 
-      RoutingTableEntry* route3 = new RoutingTableEntry (routingTableEntry->GetDestNetwork (), 
-                                                         routingTableEntry->GetDestNetworkMask (), 
-                                                         routingTableEntry->GetGateway (), 
-                                                         routingTableEntry->GetInterface ());
-      route3->SetValidity (routingTableEntry->GetValidity ());
+      RoutingTableEntry* route3 = new RoutingTableEntry (
+					routingTableEntry->GetDestNetwork (), routingTableEntry->GetDestNetworkMask (), 
+					routingTableEntry->GetGateway (), 
+					routingTableEntry->GetInterface ());
+      
+			route3->SetValidity (routingTableEntry->GetValidity ());
       route3->SetSequenceNo (routingTableEntry->GetSequenceNo ());
       route3->SetRouteType (routingTableEntry->GetRouteType ());
       route3->SetMetric (routingTableEntry->GetMetric ());
@@ -249,7 +270,11 @@ RoutingTable::AddRoute (RoutingTableEntry *routingTableEntry, Time invalidateTim
       else
       {      
         Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 2.0));        
-        invalidateEvent = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, route3, p);
+        invalidateEvent = Simulator::Schedule (delay, 
+																							 &RoutingTable::InvalidateRoute, 
+																							 this, 
+																							 route3, 
+																							 p);
       }
       m_backupRoutingTable.push_front (std::make_pair (route3, invalidateEvent));
       
@@ -259,7 +284,10 @@ RoutingTable::AddRoute (RoutingTableEntry *routingTableEntry, Time invalidateTim
 }
 
 void
-RoutingTable::MoveToMain (RoutingTableEntry *routingTableEntry, Time invalidateTime, Time deleteTime, Time settlingTime)
+RoutingTable::MoveToMain (RoutingTableEntry *routingTableEntry, 
+		Time invalidateTime, 
+		Time deleteTime, 
+		Time settlingTime)
 {
   // This method will be triggered at expiration of the settling event.
   // Both add or update methods will call accordingly.
@@ -280,19 +308,22 @@ RoutingTable::MoveToMain (RoutingTableEntry *routingTableEntry, Time invalidateT
   {
     NS_LOG_DEBUG ("Main Table has a route," << *routingTableEntry << "update it.");
 
-    UpdateNetworkRoute (routingTableEntry, invalidateTime, deleteTime, settlingTime, eslr::MAIN);
+    UpdateNetworkRoute (routingTableEntry, 
+				invalidateTime, 
+				deleteTime, 
+				settlingTime, 
+				eslr::MAIN);
   }
   else
   {
-    NS_LOG_DEBUG ("Main Table does not have a route, add the new route." << *routingTableEntry);
+    NS_LOG_DEBUG ("Main Table does not have a route, add the new route." << 
+				*routingTableEntry);
 
-    // REF.1 : Due to memory pointer management, this method may introduces a bug.
-    // However, at the movement, as both main and the primary routes are added together, 
-    // this is working fine. 
-    // Thus, if the following procedure is followed, 
-    // Add primary route --> wait settling time --> move it to main table
-    // a bug may occur. Need a fix
-    AddRoute (routingTableEntry, invalidateTime, deleteTime, Seconds(0), eslr::MAIN);
+    AddRoute (routingTableEntry, 
+				invalidateTime, 
+				deleteTime, 
+				Seconds(0), 
+				eslr::MAIN);
   }
 }
 
@@ -324,7 +355,8 @@ RoutingTable::AddHostRoute (RoutingTableEntry *routingTableEntry,
       route1->SetSequenceNo (routingTableEntry->GetSequenceNo ());
       route1->SetRouteType (eslr::PRIMARY);
       route1->SetMetric (routingTableEntry->GetMetric ());
-      if (routingTableEntry->GetDestNetwork () == "127.0.0.1")
+      
+			if (routingTableEntry->GetDestNetwork () == "127.0.0.1")
       {
         route1->SetRouteChanged (false); 
       }
@@ -362,7 +394,11 @@ RoutingTable::AddHostRoute (RoutingTableEntry *routingTableEntry,
       p.table = eslr::MAIN;
 
       Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 2.0));
-      EventId invalidateEvent = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, route2, p);
+      EventId invalidateEvent = Simulator::Schedule (delay, 
+					&RoutingTable::InvalidateRoute, 
+					this, 
+					route2, 
+					p);
 
       m_mainRoutingTable.push_back (std::make_pair (routingTableEntry,invalidateEvent));
       
@@ -383,7 +419,8 @@ RoutingTable::AddHostRoute (RoutingTableEntry *routingTableEntry,
                                                          routingTableEntry->GetDestNetworkMask (), 
                                                          routingTableEntry->GetGateway (), 
                                                          routingTableEntry->GetInterface ());
-      route4->SetValidity (routingTableEntry->GetValidity ());
+
+			route4->SetValidity (routingTableEntry->GetValidity ());
       route4->SetSequenceNo (routingTableEntry->GetSequenceNo ());
       route4->SetRouteType (eslr::PRIMARY);
       route4->SetMetric (routingTableEntry->GetMetric ());
@@ -410,7 +447,8 @@ RoutingTable::AddHostRoute (RoutingTableEntry *routingTableEntry,
                                                          routingTableEntry->GetDestNetworkMask (), 
                                                          routingTableEntry->GetGateway (), 
                                                          routingTableEntry->GetInterface ());
-      route3->SetValidity (routingTableEntry->GetValidity ());
+
+			route3->SetValidity (routingTableEntry->GetValidity ());
       route3->SetSequenceNo (routingTableEntry->GetSequenceNo ());
       route3->SetRouteType (eslr::SECONDARY);
       route3->SetMetric (routingTableEntry->GetMetric ());
@@ -424,7 +462,11 @@ RoutingTable::AddHostRoute (RoutingTableEntry *routingTableEntry,
       p.table = eslr::BACKUP;
 
       Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 2.0));
-      EventId invalidateEvent = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, route3, p);
+      EventId invalidateEvent = Simulator::Schedule (delay, 
+					&RoutingTable::InvalidateRoute, 
+					this, 
+					route3, 
+					p);
 
       m_backupRoutingTable.push_front (std::make_pair (routingTableEntry,invalidateEvent));
       
@@ -434,7 +476,8 @@ RoutingTable::AddHostRoute (RoutingTableEntry *routingTableEntry,
 }
 
 bool 
-RoutingTable::DeleteRoute (RoutingTableEntry *routingTableEntry, eslr::Table table)
+RoutingTable::DeleteRoute (RoutingTableEntry *routingTableEntry, 
+		eslr::Table table)
 {
   NS_LOG_FUNCTION (this << *routingTableEntry);
   bool retVal = false;
@@ -471,7 +514,8 @@ RoutingTable::DeleteRoute (RoutingTableEntry *routingTableEntry, eslr::Table tab
 }
 
 bool 
-RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateParams param)
+RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, 
+		invalidateParams param)
 {
   NS_LOG_FUNCTION (this << *routingTableEntry);
 
@@ -537,8 +581,12 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
         secondaryRoute->second.Cancel ();         
         m_backupRoutingTable.erase (secondaryRoute);        
         
-        RoutingTableEntry* m_route = new RoutingTableEntry (destination, mask, gateway, interface);
-        m_route->SetValidity (eslr::VALID);
+        RoutingTableEntry* m_route = new RoutingTableEntry (destination, 
+						mask, 
+						gateway, 
+						interface);
+        
+				m_route->SetValidity (eslr::VALID);
         m_route->SetSequenceNo (sequenceNo);
         m_route->SetRouteType (eslr::PRIMARY);
         m_route->SetMetric (cost);
@@ -555,11 +603,18 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
 
         mainRoute->second.Cancel ();          
         Time delay = param.invalidateTime + Seconds (m_rng->GetValue (0.0, 2.0));
-        mainRoute->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, 
-                                                 this, m_route, p);
+        mainRoute->second = Simulator::Schedule (delay, 
+						&RoutingTable::InvalidateRoute,
+					 	this, 
+						m_route, 
+						p);
                 
-        RoutingTableEntry* p_route = new RoutingTableEntry (destination, mask, gateway, interface);
-        p_route->SetValidity (eslr::VALID);
+        RoutingTableEntry* p_route = new RoutingTableEntry (destination, 
+						mask, 
+						gateway, 
+						interface);
+        
+				p_route->SetValidity (eslr::VALID);
         p_route->SetSequenceNo (sequenceNo);
         p_route->SetRouteType (eslr::PRIMARY);
         p_route->SetMetric (cost);
@@ -584,15 +639,16 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
                                                             primaryRoute->first->GetDestNetworkMask (),
                                                             primaryRoute->first->GetGateway (), 
                                                             primaryRoute->first->GetInterface ());
-        m_route->SetMetric (primaryRoute->first->GetMetric ());
+        
+				m_route->SetMetric (primaryRoute->first->GetMetric ());
         m_route->SetSequenceNo (primaryRoute->first->GetSequenceNo ());
         m_route->SetValidity (eslr::VALID);
         m_route->SetRouteType (eslr::PRIMARY);
         m_route->SetRouteChanged (true);
 
         delete routingTableEntry;
-        //delete mainRoute->first;
-        mainRoute->first = m_route;
+        
+				mainRoute->first = m_route;
 
 			  p.settlingTime = Seconds (0);
 			  p.invalidateType = eslr::EXPIRE;
@@ -600,8 +656,11 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
         
         mainRoute->second.Cancel ();
         delay = param.invalidateTime + Seconds (m_rng->GetValue (0.0, 2.0));
-        mainRoute->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, this, 
-                                                 m_route, p);
+        mainRoute->second = Simulator::Schedule (delay, 
+						&RoutingTable::InvalidateRoute, 
+						this,
+						m_route, 
+						p);
 
         primaryRoute->second.Cancel ();                                                   
         primaryRoute->second = EventId ();
@@ -612,7 +671,7 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
       {
         // As there is no backup route found
         // delete both main and associated primary route
-        NS_LOG_DEBUG ("There is no propper Backup route Find. The primary route is also un stable."
+        NS_LOG_DEBUG ("There is no proper Backup route Find. The primary route is also unstable."
                       << "So, deleting both main and primary routes!.");
 
         Time delay = param.deleteTime + Seconds (m_rng->GetValue (0.0, 5.0));
@@ -623,10 +682,12 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
           mainRoute->first->SetRouteChanged (true);
 
           mainRoute->second.Cancel ();
-          mainRoute->second = Simulator::Schedule (delay, &RoutingTable::DeleteRoute, this,
-                                                   routingTableEntry, eslr::MAIN);
+          mainRoute->second = Simulator::Schedule (delay, 
+							&RoutingTable::DeleteRoute, 
+							this,
+							routingTableEntry, 
+							eslr::MAIN);
 
-          //delete routingTableEntry;
         }
         if (foundPrimaryRoute)
         {
@@ -634,13 +695,17 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
 
           primaryRoute->first->SetValidity (eslr::INVALID);
           primaryRoute->first->SetRouteChanged (true);
-          primaryRoute->second = Simulator::Schedule (delay, &RoutingTable::DeleteRoute, this,
-                                                      primaryRoute->first, eslr::BACKUP);
+          primaryRoute->second = Simulator::Schedule (delay, 
+							&RoutingTable::DeleteRoute, 
+							this,
+							primaryRoute->first, 
+							eslr::BACKUP);
         }
         return (retVal = true);
       }      
 		}
-		else if (param.invalidateType == eslr::BROKEN_NEIGHBOR || param.invalidateType == eslr::BROKEN_INTERFACE)
+		else if (param.invalidateType == eslr::BROKEN_NEIGHBOR || 
+						 param.invalidateType == eslr::BROKEN_INTERFACE)
 		{ 
 			if (foundBackupRoute)
 			{
@@ -664,15 +729,18 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
         secondaryRoute->second.Cancel ();      
         m_backupRoutingTable.erase (secondaryRoute);                         
         
-        RoutingTableEntry* m_route = new RoutingTableEntry (destination, mask, gateway, interface);
-        m_route->SetValidity (eslr::VALID);
+        RoutingTableEntry* m_route = new RoutingTableEntry (destination, 
+						mask, 
+						gateway, 
+						interface);
+        
+				m_route->SetValidity (eslr::VALID);
         m_route->SetSequenceNo (sequenceNo);
         m_route->SetRouteType (eslr::PRIMARY);
         m_route->SetMetric (cost);
         m_route->SetRouteChanged (true);
                   
         delete routingTableEntry;
-        //delete mainRoute->first;
         mainRoute->first = m_route;
         
 			  p.settlingTime = Seconds (0);
@@ -682,11 +750,18 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
         mainRoute->second.Cancel ();
         
         Time delay = param.invalidateTime + Seconds (m_rng->GetValue (0.0, 2.0));
-        mainRoute->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, 
-                                                 this, m_route, p); 
+        mainRoute->second = Simulator::Schedule (delay, 
+						&RoutingTable::InvalidateRoute, 
+						this, 
+						m_route, 
+						p); 
                                                  
-        RoutingTableEntry* p_route = new RoutingTableEntry (destination, mask, gateway, interface);
-        p_route->SetValidity (eslr::VALID);
+        RoutingTableEntry* p_route = new RoutingTableEntry (destination, 
+						mask, 
+						gateway, 
+						interface);
+        
+				p_route->SetValidity (eslr::VALID);
         p_route->SetSequenceNo (sequenceNo);
         p_route->SetRouteType (eslr::PRIMARY);
         p_route->SetMetric (cost);
@@ -717,10 +792,11 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
           mainRoute->first->SetRouteChanged (true);
           
           mainRoute->second.Cancel ();
-          mainRoute->second = Simulator::Schedule (delay, &RoutingTable::DeleteRoute, this, 
-                                                   routingTableEntry, eslr::MAIN);
-
-					//delete routingTableEntry;
+          mainRoute->second = Simulator::Schedule (delay, 
+							&RoutingTable::DeleteRoute, 
+							this, 
+							routingTableEntry, 
+							eslr::MAIN);
         }
         if (foundPrimaryRoute)
         { 
@@ -728,9 +804,12 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
 
           primaryRoute->first->SetValidity (eslr::DISCONNECTED);
           primaryRoute->first->SetRouteChanged (true);
-          primaryRoute->second = Simulator::Schedule (delay, &RoutingTable::DeleteRoute, this, 
-                                                      primaryRoute->first, eslr::BACKUP);
-        }        
+          primaryRoute->second = Simulator::Schedule (delay, 
+							&RoutingTable::DeleteRoute, 
+							this, 
+							primaryRoute->first,
+							eslr::BACKUP);
+				}
         return (retVal = true); 
 			}
 		}		
@@ -752,10 +831,11 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
         mainRoute->first->SetRouteChanged (true);
         
         mainRoute->second.Cancel ();
-        mainRoute->second = Simulator::Schedule (delay, &RoutingTable::DeleteRoute, this, 
-                                                 routingTableEntry, eslr::MAIN);
-
-				//delete routingTableEntry;
+        mainRoute->second = Simulator::Schedule (delay, 
+						&RoutingTable::DeleteRoute, 
+						this, 
+						routingTableEntry, 
+						eslr::MAIN);
       }
       if (foundPrimaryRoute)
       { 
@@ -763,8 +843,11 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
 
         primaryRoute->first->SetValidity (eslr::DISCONNECTED);
         primaryRoute->first->SetRouteChanged (true);
-        primaryRoute->second = Simulator::Schedule (delay, &RoutingTable::DeleteRoute, this, 
-                                                    primaryRoute->first, eslr::BACKUP);
+        primaryRoute->second = Simulator::Schedule (delay, 
+						&RoutingTable::DeleteRoute, 
+						this, 
+						primaryRoute->first, 
+						eslr::BACKUP);
       }        
       return (retVal = true); 
 		}
@@ -808,7 +891,11 @@ RoutingTable::InvalidateRoute (RoutingTableEntry *routingTableEntry, invalidateP
 }
 
 bool 
-RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time invalidateTime, Time deleteTime, Time settlingTime, eslr::Table table)
+RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, 
+		Time invalidateTime, 
+		Time deleteTime, 
+		Time settlingTime, 
+		eslr::Table table)
 {
   NS_LOG_FUNCTION (this << *routingTableEntry);
   
@@ -873,10 +960,17 @@ RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time inv
 
         mainRoute->second.Cancel ();        
         Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 2.0));
-        mainRoute->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, 
-                                                 this, m_route, p);
+        mainRoute->second = Simulator::Schedule (delay, 
+						&RoutingTable::InvalidateRoute,
+						this, 
+						m_route, 
+						p);
                 
-        RoutingTableEntry* p_route = new RoutingTableEntry (destination, mask, gateway, interface);
+        RoutingTableEntry* p_route = new RoutingTableEntry (destination, 
+						mask, 
+						gateway, 
+						interface);
+
         p_route->SetValidity (eslr::VALID);
         p_route->SetSequenceNo (sequenceNo);
         p_route->SetRouteType (eslr::PRIMARY);
@@ -884,7 +978,6 @@ RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time inv
         p_route->SetRouteChanged (true);            
         
         delete routingTableEntry;
-	      //delete primaryRoute->first;
         primaryRoute->first = p_route;
         
         primaryRoute->second.Cancel ();         
@@ -905,7 +998,6 @@ RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time inv
         m_route->SetRouteChanged (true);
 
         delete mainRoute->first;
-        //delete routingTableEntry;
         mainRoute->first = m_route;
 
         invalidateParams  p;
@@ -916,13 +1008,18 @@ RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time inv
         p.table = eslr::MAIN;
         
         mainRoute->second.Cancel ();
-        Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 2.0));
-        mainRoute->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, 
-                                                 this, m_route, p); 
+        
+				Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 2.0));
+        mainRoute->second = Simulator::Schedule (delay, 
+						&RoutingTable::InvalidateRoute, 
+						this, 
+						m_route, 
+						p); 
         
         primaryRoute->second.Cancel ();
         primaryRoute->second = EventId (); 
-        return retVal = true;                
+        
+				return retVal = true;                
       }
     }
   }
@@ -970,18 +1067,26 @@ RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time inv
           Time delay = Simulator::GetDelayLeft (primaryRoute->second) + Seconds (m_rng->GetValue (0.0, 4.0));
           
           primaryRoute->second.Cancel ();         
-					primaryRoute->second = Simulator::Schedule (delay, &RoutingTable::MoveToMain, 
-                                                      this, route, invalidateTime, 
-                                                      deleteTime, settlingTime); 
+					primaryRoute->second = Simulator::Schedule (delay, 
+							&RoutingTable::MoveToMain, 
+							this, 
+							route, 
+							invalidateTime, 
+							deleteTime, 
+							settlingTime); 
         }
         else
         { 
           Time delay = settlingTime + Seconds (m_rng->GetValue (0.0, 5.0)); 
 					
 					primaryRoute->second.Cancel ();					
-          primaryRoute->second = Simulator::Schedule (delay, &RoutingTable::MoveToMain, 
-                                                      this, route, invalidateTime, 
-                                                      deleteTime, settlingTime);          
+          primaryRoute->second = Simulator::Schedule (delay, 
+							&RoutingTable::MoveToMain, 
+							this,
+							route, 
+							invalidateTime, 
+							deleteTime, 
+							settlingTime);          
         }
 
         delete routingTableEntry;
@@ -1001,7 +1106,8 @@ RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time inv
                                                           routingTableEntry->GetDestNetworkMask (), 
                                                           routingTableEntry->GetGateway (), 
                                                           routingTableEntry->GetInterface ());
-        route->SetValidity (routingTableEntry->GetValidity ());
+
+				route->SetValidity (routingTableEntry->GetValidity ());
         route->SetSequenceNo (routingTableEntry->GetSequenceNo ());
         route->SetRouteType (eslr::SECONDARY);
         route->SetMetric (routingTableEntry->GetMetric ());
@@ -1022,8 +1128,11 @@ RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time inv
         p.table = eslr::BACKUP;      
 
         Time delay = invalidateTime + Seconds (m_rng->GetValue (0.0, 2.0));                
-        secondaryRoute->second = Simulator::Schedule (delay, &RoutingTable::InvalidateRoute, 
-                                                      this, route, p);   
+        secondaryRoute->second = Simulator::Schedule (delay, 
+						&RoutingTable::InvalidateRoute, 
+						this, 
+						route, 
+						p);   
                                                       
         delete routingTableEntry;                                                       
         return retVal = true;            
@@ -1038,7 +1147,9 @@ RoutingTable::UpdateNetworkRoute (RoutingTableEntry *routingTableEntry, Time inv
 }  
 
 void 
-RoutingTable::UpdateLocalRoute (Ipv4Address destination, Ipv4Mask netMask, uint32_t metric)
+RoutingTable::UpdateLocalRoute (Ipv4Address destination, 
+		Ipv4Mask netMask, 
+		uint32_t metric)
 {
   for (RoutesI it = m_mainRoutingTable.begin ();  it!= m_mainRoutingTable.end (); it++)
   {
@@ -1054,7 +1165,11 @@ RoutingTable::UpdateLocalRoute (Ipv4Address destination, Ipv4Mask netMask, uint3
 }
 
 void 
-RoutingTable::InvalidateRoutesForGateway (Ipv4Address gateway,  Time invalidateTime, Time deleteTime, Time settlingTime, eslr::Table table)
+RoutingTable::InvalidateRoutesForGateway (Ipv4Address gateway,  
+		Time invalidateTime, 
+		Time deleteTime, 
+		Time settlingTime, 
+		eslr::Table table)
 {
   NS_LOG_FUNCTION (this << gateway); 
 
@@ -1076,7 +1191,9 @@ RoutingTable::InvalidateRoutesForGateway (Ipv4Address gateway,  Time invalidateT
         it->second.Cancel ();
         it->second  = Simulator::Schedule (MilliSeconds (m_rng->GetValue (0.0, 2.0)),
                                            &RoutingTable::InvalidateRoute, 
-                                           this, it->first, p);
+                                           this, 
+																					 it->first, 
+																					 p);
       }
     }  
   }
@@ -1092,14 +1209,20 @@ RoutingTable::InvalidateRoutesForGateway (Ipv4Address gateway,  Time invalidateT
         it->second.Cancel ();
         it->second  = Simulator::Schedule (MilliSeconds (m_rng->GetValue (0.0, 2.0)),
                                            &RoutingTable::InvalidateRoute,
-                                           this, it->first, p);
+                                           this, 
+																					 it->first, 
+																					 p);
       }
     }  
   }    
 }
 
 void 
-RoutingTable::InvalidateRoutesForInterface (uint32_t interface,  Time invalidateTime, Time deleteTime, Time settlingTime, eslr::Table table)
+RoutingTable::InvalidateRoutesForInterface (uint32_t interface,  
+		Time invalidateTime, 
+		Time deleteTime, 
+		Time settlingTime, 
+		eslr::Table table)
 {
   NS_LOG_FUNCTION (this << interface);
 
@@ -1121,8 +1244,10 @@ RoutingTable::InvalidateRoutesForInterface (uint32_t interface,  Time invalidate
         it->second.Cancel ();
         it->second  = Simulator::Schedule (MicroSeconds (m_rng->GetValue (0.0, 2.0)),
                                            &RoutingTable::InvalidateRoute,
-                                           this, it->first, p);
-        std::cout << int(m_nodeId)<<" is invalidating:" << it->first->GetDestNetwork () << "/" << it->first->GetDestNetworkMask () << ", which uses broken interface: "<< interface << std::endl;                                                    
+                                           this, 
+																					 it->first, 
+																					 p);
+        std::cout << int(m_nodeId)<< " is invalidating:" << it->first->GetDestNetwork () << "/" << it->first->GetDestNetworkMask () << ", which uses broken interface: "<< interface << std::endl;                                                    
       }
     }  
   }
@@ -1138,14 +1263,22 @@ RoutingTable::InvalidateRoutesForInterface (uint32_t interface,  Time invalidate
         it->second.Cancel ();
         it->second  = Simulator::Schedule (MicroSeconds (m_rng->GetValue (0.0, 2.0)),
                                            &RoutingTable::InvalidateRoute,
-                                           this, it->first, p);
+                                           this, 
+																					 it->first,
+																					 p);
       }
     }  
   }  
 }
 
 bool 
-RoutingTable::InvalidateBrokenRoute (Ipv4Address destAddress, Ipv4Mask destMask, Ipv4Address gateway, Time invalidateTime, Time deleteTime, Time settlingTime, eslr::Table table)
+RoutingTable::InvalidateBrokenRoute (Ipv4Address destAddress, 
+		Ipv4Mask destMask, 
+		Ipv4Address gateway, 
+		Time invalidateTime, 
+		Time deleteTime, 
+		Time settlingTime, 
+		eslr::Table table)
 {
   bool retVal = false;
 
@@ -1168,7 +1301,9 @@ RoutingTable::InvalidateBrokenRoute (Ipv4Address destAddress, Ipv4Mask destMask,
         it->second.Cancel ();
         it->second  = Simulator::Schedule (MicroSeconds (m_rng->GetValue (0.0, 2.0)), 
                                            &RoutingTable::InvalidateRoute, 
-                                           this, it->first, p);
+                                           this, 
+																					 it->first, 
+																					 p);
         retVal = true;
       }
     }  
@@ -1186,7 +1321,9 @@ RoutingTable::InvalidateBrokenRoute (Ipv4Address destAddress, Ipv4Mask destMask,
         it->second.Cancel ();
         it->second  = Simulator::Schedule (MicroSeconds (m_rng->GetValue (0.0, 2.0)), 
                                            &RoutingTable::InvalidateRoute, 
-                                           this, it->first, p);
+                                           this, 
+																					 it->first, 
+																					 p);
         retVal = true;
       }
     }  
@@ -1196,7 +1333,11 @@ RoutingTable::InvalidateBrokenRoute (Ipv4Address destAddress, Ipv4Mask destMask,
 }
 
 bool 
-RoutingTable::FindRouteRecord (Ipv4Address destination, Ipv4Mask netMask, Ipv4Address gateway, RoutesI &retRoutingTableEntry, eslr::Table table)
+RoutingTable::FindRouteRecord (Ipv4Address destination, 
+		Ipv4Mask netMask, 
+		Ipv4Address gateway, 
+		RoutesI &retRoutingTableEntry, 
+		eslr::Table table)
 {
   bool retVal = false;
 
@@ -1232,7 +1373,10 @@ RoutingTable::FindRouteRecord (Ipv4Address destination, Ipv4Mask netMask, Ipv4Ad
 }
 
 bool 
-RoutingTable::FindRouteRecord (Ipv4Address destination, Ipv4Mask netMask, RoutesI &retRoutingTableEntry, eslr::Table table)
+RoutingTable::FindRouteRecord (Ipv4Address destination, 
+		Ipv4Mask netMask, 
+		RoutesI &retRoutingTableEntry, 
+		eslr::Table table)
 {
   bool retVal = false;
 
@@ -1267,7 +1411,10 @@ RoutingTable::FindRouteRecord (Ipv4Address destination, Ipv4Mask netMask, Routes
 }
 
 bool 
-RoutingTable::FindValidRouteRecord (Ipv4Address destination, Ipv4Mask netMask, RoutesI &retRoutingTableEntry, eslr::Table table)
+RoutingTable::FindValidRouteRecord (Ipv4Address destination, 
+		Ipv4Mask netMask, 
+		RoutesI &retRoutingTableEntry, 
+		eslr::Table table)
 {
   bool retVal = false;
 
@@ -1335,7 +1482,11 @@ RoutingTable::FindGivenRouteRecord (RoutingTableEntry *route, bool &found, eslr:
 }
 
 RoutingTable::RoutesI
-RoutingTable::FindValidRouteRecordForDestination (Ipv4Address destination, Ipv4Mask netMask, Ipv4Address gateway, bool &found, eslr::Table table)
+RoutingTable::FindValidRouteRecordForDestination (Ipv4Address destination, 
+		Ipv4Mask netMask, 
+		Ipv4Address gateway, 
+		bool &found, 
+		eslr::Table table)
 {
   RoutesI foundRoute;
   bool retVal = false;
@@ -1372,7 +1523,10 @@ RoutingTable::FindValidRouteRecordForDestination (Ipv4Address destination, Ipv4M
 }
 
 bool 
-RoutingTable::FindRouteInBackup (Ipv4Address destination, Ipv4Mask netMask, RoutesI &retRoutingTableEntry, eslr::RouteType routeType)
+RoutingTable::FindRouteInBackup (Ipv4Address destination, 
+		Ipv4Mask netMask, 
+		RoutesI &retRoutingTableEntry, 
+		eslr::RouteType routeType)
 {
   bool retVal = false;
 
@@ -1391,7 +1545,10 @@ RoutingTable::FindRouteInBackup (Ipv4Address destination, Ipv4Mask netMask, Rout
 }
 
 RoutingTable::RoutesI
-RoutingTable::FindRouteInBackupForDestination (Ipv4Address destination, Ipv4Mask netMask, bool &found, eslr::RouteType routeType)
+RoutingTable::FindRouteInBackupForDestination (Ipv4Address destination, 
+		Ipv4Mask netMask, 
+		bool &found, 
+		eslr::RouteType routeType)
 {
   bool retVal = false;
   RoutesI foundRoute;
@@ -1470,6 +1627,42 @@ RoutingTable::ReturnRoutingTable (RoutingTableInstance &instance, eslr::Table ta
     NS_ABORT_MSG ("No specified routing table found. Aborting.");
 }
 
+bool
+RoutingTable::RoutesWithNoBackupRoutes (uint32_t interface, RoutingTableInstance &instance)
+{
+	NS_LOG_FUNCTION (this << interface);
+
+	bool foundBackupRoute = false;
+	bool retVal = false;
+
+	for (RoutesI it = m_mainRoutingTable.begin (); it != m_mainRoutingTable.end (); it++)
+	{
+		if ((it->first->GetInterface () == interface) && (it->first->GetGateway () != Ipv4Address::GetZero ()))
+		{
+			// Backup Route (the secondary route for the main route, which is in the Backup Table)
+			// As only one backup route is ablilable, we check for VALID backup router.
+			// Only condition is the interface has to be different, which is obvious
+    	RoutesI secondaryRoute = FindRouteInBackupForDestination (it->first->GetDestNetwork (), 
+                                               									it->first->GetDestNetworkMask (), 
+                                               									foundBackupRoute, eslr::SECONDARY);
+
+			if (!foundBackupRoute)
+			{
+				RoutingTableEntry* route;
+	
+				route  =  new RoutingTableEntry ( it->first->GetDestNetwork (),
+					 																it->first->GetDestNetworkMask (),
+																					it->first->GetGateway (),
+																					it->first->GetInterface ());
+				instance.push_front(std::make_pair (route, EventId ()));
+
+				retVal = true;
+			}
+		}
+	}
+	return retVal;
+}
+
 void 
 RoutingTable::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table table) const
 {
@@ -1490,10 +1683,6 @@ RoutingTable::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table ta
 
       //if (validity == eslr::VALID || validity == eslr::LHOST || validity == eslr::INVALID || validity == eslr::DISCONNECTED)
       //{
-      
-      //if (route->GetDestNetworkMask ().IsMatch ("10.0.0.146", route->GetDestNetwork ()))      
-      //{
-      
         std::ostringstream dest, gateway, val;
         
         dest << route->GetDestNetwork ()/* << "/" << int (route->GetDestNetworkMask ().GetPrefixLength ())*/;
@@ -1525,7 +1714,6 @@ RoutingTable::PrintRoutingTable (Ptr<OutputStreamWrapper> stream, eslr::Table ta
         *os << std::setiosflags (std::ios::left) << std::setw (10) << Simulator::GetDelayLeft (it->second).GetSeconds ();
        
         *os << '\n';
-        //}
       //}        
     }
   }

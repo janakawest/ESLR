@@ -37,7 +37,7 @@ namespace eslr {
  * Authentication types used in route management
  */
   enum AuthType {
-    PLAIN_TEXT = 0x01, //!< Auth data send as PLAIN-TEXT
+    PLAIN_TEXT = 0x01, //!< Auth data send as PLAIN-TEXT (Current Implementation support only plain text)
     MD5 = 0x02, //!< Auth data send as MD5 HASH
     SHA = 0x03, //!< Auth data send as SHA HASH
   };
@@ -49,7 +49,6 @@ namespace eslr {
   {
     HELLO = 0x01,
 		HI = 0x02,
-    // Rest of the commands are TBI
   };
 
 /**
@@ -58,7 +57,7 @@ namespace eslr {
   enum EslrHeaderCommand
   {
     RU = 0x01, //!< Route Update message
-    KAM = 0x03, //!< Keep alive (hello) message
+    KAM = 0x03, //!< Hello, Hi, Keep alive messages
     SRC = 0x04, //!< Server-router communication message
   };
 
@@ -73,7 +72,7 @@ namespace eslr {
   };
 
 /**
- * The request types
+ * Route Request Types
  */
   enum EslrHeaderRequestType
   {
@@ -83,12 +82,12 @@ namespace eslr {
     ET = 0x03, //!< Entire Table
 		ND = 0x04, //!< Specially maintained to initial route discovery.
 							 //   Those who send initial route request, should send this and the packet
-							 //   will be trated as ET
+							 //   will be treated as ET
     RESPOND = 0xff, //!< For all response messages
   };
 
 /**
- * Validity type of both neighbor and route records 
+ * Validity types of both neighbor and route records 
  */
 enum Validity
 {
@@ -96,7 +95,7 @@ enum Validity
   VALID = 0x01, //!< Valid Neighbor or Route Record
   DISCONNECTED = 0x02, //!< Disconnected Route Record
   LHOST = 0x03, //!< Host route for the loop-back interface. This is not used for route advertisements
-	VOID = 0x04, //!< The initial state that the neighbors are added to  
+	VOID = 0x04, //!< The initial state that the neighbors are added in  
 };
 
 /**
@@ -104,8 +103,8 @@ enum Validity
   */
 enum RouteType
 {
-  PRIMARY = 0x01, //!< Record is added to the Main Table
-  SECONDARY = 0x02, //!< Record is in the Backup Table
+  PRIMARY = 0x01, //!< routes in main table and the reference routers in in B-Table
+  SECONDARY = 0x02, //!< Backup routes in B-Table
 };
 
 /**
@@ -113,8 +112,8 @@ enum RouteType
   */
 enum Table
 {
-  MAIN = 0x01, //!< Record is added to the Primary Table
-  BACKUP = 0x02, //!< Record is in the Secondery Table
+  MAIN = 0x01, //!< main table: M-Table
+  BACKUP = 0x02, //!< backup table: B-Table
 };
 
 /**
@@ -123,7 +122,7 @@ enum Table
 enum UpdateType
 {
   PERIODIC = 0x01, //!< ESLR Periodic Update
-  TRIGGERED = 0x02, //!< ESLR Triggered Update
+  TRIGGERED = 0x02, //!< ESLR Triggered Update (Fast triggered updates are differentiated using ESLRHeader structure)
 };
 
 /**
@@ -131,7 +130,7 @@ enum UpdateType
   */
 enum InvalidateType
 {
-  EXPIRE = 0x01, //!< Invalidate a route due to expiration of the route
+  EXPIRE = 0x01, //!< Invalidate a route due to expiration
   BROKEN = 0x02, //!< Invalidate a route due to broken destination 
   BROKEN_NEIGHBOR = 0x03, //!< Invalidate a route due to unresponsive neighbor
   BROKEN_INTERFACE = 0x04, //!< Invalidate a route due to unresponsive interface

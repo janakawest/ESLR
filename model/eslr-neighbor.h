@@ -44,12 +44,18 @@ public:
   //NeighborTableEntry (void);
   /**
   * \brief Constructor
-  * \param neighborID ID of the neighbor: hash value of (AS + IF0's address, IF0's net-mask)
+  * \param neighborID ID of the neighbor: 
+	* 			\\TODO 
+	* 			  hash value of (AS + IF0's address, IF0's net-mask)
+	* 			Now it is the node ID (ns3::node::id)
   * \param neighborAddress IP address of the sending interface
   * \param neighborMask network mask of the sending interface
   * \param interface received interface index
   * \param socket bound socket
-  * \param neighborAuthType authentication type that neighbor suggested to use (plain-text = 0, MD5 = 1, SHA = 2)
+  * \param neighborAuthType authentication type that neighbor suggested to use 
+	* 				\\TODO 
+	* 				  (plain-text = 0, MD5 = 1, SHA = 2)
+	* 				Now supports only plain text
   * \param neighborAuthData the authentication phrase
   */
   NeighborTableEntry (uint16_t neighborID = 0, 
@@ -178,7 +184,7 @@ public:
 
   /**
   * \brief Get and Set the identification number
-  * \param identifier the identifier nubmer
+  * \param identifier the identifier number
   * \returns the identifier number
   */
   void SetAuthData (uint8_t identifier)
@@ -233,16 +239,17 @@ public:
 
 	/**
 	 * \brief Add a void neighbor.
-	 * At thebegening of the neighbor discovery process, The neighbors are added to the neighbor
-	 * table as in a void state. They will remain under that state untill the node receives a 
-	 * RRQ message from the neighbor. When the node receives a RRW message from the newly discoverd neighbor
+	 * At the beginning of the neighbor discovery process, The neighbors are added to the neighbor
+	 * table using a VOID state. They will remain under that state until the node receives a 
+	 * RRQ message from the neighbor. When the node receives a RRQ message from the newly discovered neighbor
 	 * the node will update the state to VALID*/
-	void AddVoidNeighbor (NeighborTableEntry *neighborEntry, Time removeTime);
+	void AddVoidNeighbor (NeighborTableEntry *neighborEntry, 
+			Time removeTime);
 
 	/**
-	 * \brief When a VOID neighbor is added to the function, every neighbor is coupled with 
-	 * this method to delete the neighbor record after a waiting time. The waiting time is depending on the
-	 * configuration*/
+	 * \brief Each VOID neighbor is coupled with and event to delete the neighbor record after a waiting time. 
+	 * The waiting time is depending on the configuration
+	 */
 	bool DeleteVoidNeighbor (NeighborTableEntry *neighborEntry);
 
 	/**
@@ -254,7 +261,8 @@ public:
 	 * \brief Find and void neighbor for a given IP address
 	 * \param address the IP address of the selecting neighbor
 	 * \param retneighborentry returning neighbor record */
-	bool FindVoidNeighborForAddress (Ipv4Address address, NeighborI &retNeighborEntry);
+	bool FindVoidNeighborForAddress (Ipv4Address address, 
+			NeighborI &retNeighborEntry);
 
   /**
   * \brief Add a new neighbor record to the neighbor table 
@@ -262,10 +270,12 @@ public:
   * \param invalidateTime time that the particular route invalidate
   * \param deleteTime garbage collection delay
   */
-  void AddNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime);
+  void AddNeighbor (NeighborTableEntry *neighborEntry, 
+			Time invalidateTime, 
+			Time deleteTime);
 
   /**
-  * \brief Delete a neighbor record from the neighbor table after NbrRemove secondes exceeds
+  * \brief Delete a neighbor record from the neighbor table after NbrRemove seconds exceeds
   * \param neighborEntry neighbor details   
   * \returns true if success  
   */
@@ -276,35 +286,40 @@ public:
   * \param neighborEntry neighbor details
   * \param deleteTime garbage collection delay
   */
-  bool InvalidateNeighbor (NeighborTableEntry *neighborEntry, Time deleteTime);
+  bool InvalidateNeighbor (NeighborTableEntry *neighborEntry, 
+			Time deleteTime);
 
   /**
-  * \brief Find and return a neighbor record if exist. Do not consider the VALID flag
+  * \brief Find and return a neighbor record for ID. Do not consider the VALID flag
   * \param neighborID find for the ID   
   * \returns true and the corresponding neighbor record if success  
   */
-  bool FindNeighbor (uint32_t neighborID, NeighborI &retNeighborEntry);
+  bool FindNeighbor (uint32_t neighborID, 
+			NeighborI &retNeighborEntry);
 
 	/**
-  * \brief Find and return a neighbor record of a valid neighbor for given ID (consider the VALID flag)
+  * \brief Find and return a neighbor record for a given ID. Consider the VALID flag
   * \param neighborID find for the ID   
   * \returns true and the corresponding neighbor record if success  
   */
-  bool FindValidNeighbor (uint32_t neighborID, NeighborI &retNeighborEntry);
+  bool FindValidNeighbor (uint32_t neighborID, 
+			NeighborI &retNeighborEntry);
 
 	/**
-  * \brief Find and return a neighbor record of a valid neighbor for given address (consider the VALID flag)
+  * \brief Find and return a neighbor record for given address. Consider the VALID flag
   * \param address find for the address   
   * \returns true and the corresponding neighbor record if success  
   */
-	bool FindValidNeighborForAddress (Ipv4Address address, NeighborI &retNeighborEntry);
+	bool FindValidNeighborForAddress (Ipv4Address address, 
+			NeighborI &retNeighborEntry);
 
   /**
-  * \brief Find and return a neighbor record for a given address
+  * \brief Find and return a neighbor record for a given address. Do not consider the VALID flag
   * \param address find for the address
   * \returns true and the corresponding neighbor record if success
   */
-	bool FindNeighborForAddress (Ipv4Address address, NeighborI &retNeighborEntry);
+	bool FindNeighborForAddress (Ipv4Address address, 
+			NeighborI &retNeighborEntry);
 
   /**
   * \brief Update a given neighbor Record
@@ -312,10 +327,14 @@ public:
   * \param invalidateTime time that the particular route invalidate
   * \param deleteTime garbage collection delay
   */
-  bool UpdateNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime);
+  bool UpdateNeighbor (NeighborTableEntry *neighborEntry, 
+			Time invalidateTime, 
+			Time deleteTime);
 
   /**
   * \brief Return an instance of the neighbor table. This is specifically implemented for debug purposes
+	* 				The one who call this method, should clear the temporary neighbor table at the place 
+	* 				where this method is called. That is a best practice for good memory management.
   * \param neighborTableInstance an instance of the std::list <NeighborTableEntry*, EventID>   
   * \returns true if success  
   */
@@ -328,7 +347,7 @@ public:
   void PrintNeighborTable (Ptr<OutputStreamWrapper> stream) const;
 
   /**
-  * \brief return if the neighboer table is empty or not
+  * \brief return if the neighbor table is empty or not
   */
   bool IsEmpty(void);
 
@@ -340,7 +359,10 @@ public:
 		m_neighborTable.clear ();
 	}
 
-	void DoInitialize (RoutingTable& routingTablei, Time routeTimeout, Time routeDelete, Time routeSettling)
+	void DoInitialize (RoutingTable& routingTablei, 
+			Time routeTimeout, 
+			Time routeDelete, 
+			Time routeSettling)
 	{
 		m_routeTimeoutDelay = routeTimeout;
 		m_routeGarbageCollectionDelay = routeDelete;

@@ -38,22 +38,22 @@ namespace eslr {
  * \brief ESLR Route Update Message (RUM)
  */
 /**	-----------------------------RUM-------------------------------
-	|      0        |      1        |      2        |      3      |
-	0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
-	+---------------+---------------+---------------+-------------+
-	|			   				  						 Seq#									    		  |
-	+---------------+---------------+---------------+-------------+
-	|    				    	  					Metric						 			 			  |
-	+---------------+---------------+---------------+-------------+
-	|															NOTUSE						|C|D|  <tag>	|
-	+---------------+---------------+---------------+-------------+
-	|								Network Address / Host Address							  |
-	+---------------+---------------+---------------+-------------+
-	|						  	 							NetMask												  |
-	+---------------+---------------+---------------+-------------+
+		|      0        |      1        |      2        |      3      |
+		0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+		+---------------+---------------+---------------+-------------+
+		|			   				  						 Seq#									    		  |
+		+---------------+---------------+---------------+-------------+
+		|    				    	  					Metric						 			 			  |
+		+---------------+---------------+---------------+-------------+
+		|															NOTUSE						|C|D|  <tag>	|
+		+---------------+---------------+---------------+-------------+
+		|								Network Address / Host Address							  |
+		+---------------+---------------+---------------+-------------+
+		|						  	 							NetMask												  |
+		+---------------+---------------+---------------+-------------+
 		Route tag	:	
 			C 		:		Connected routes
-			D 		:		Poisioned routes
+			D 		:		Poisoned routes
 			<tag>	:		For route conversions
 */
 class ESLRrum : public Header
@@ -177,25 +177,22 @@ public:
   /**
    * \brief Get and Set the Network Mask
    * \param mask the net-mask of the destination
-   * \return the the net-mask of the destination
+   * \return the net-mask of the destination
    */
 	void SetDestMask (Ipv4Mask mask)
 	{
     m_mask = mask;
-    //m_prefixLength = m_mask.GetPrefixLength ();
 	}
 	Ipv4Mask GetDestMask () const
 	{
     return m_mask;
 	}
-	//TODO: Get and set CCV and transmit them
 
 private:
   uint16_t m_sequenceNumber; //!< sequence number
   uint32_t m_matric; //!< metric (time to reach the destination)
   Ipv4Address m_destination; //!< destination network/host address
   Ipv4Mask m_mask; //!< destination network/host mask
-	// uint8_t K1, K2, K3; //!< CCValues
 	uint8_t m_routeTag; //!< reserved for future use of route conversion |C|D|<future>|
   
 };// end of class ESLRRouteUpdateMessage
@@ -206,24 +203,24 @@ private:
  * \param h the Routing Table Entry
  * \returns the reference to the output stream
  */
-std::ostream & operator << (std::ostream & os, const ESLRrum & h);
+std::ostream & operator << (std::ostream &os, const ESLRrum &h);
 
 /**
  * \ingroup ESLR
  * \brief ESLR Hello and Keep Alive Message (KAM) header
  */
 /**	----------------Keep Alive Message Header----------------------
-	|      0        |      1        |      2        |      3      |
-	0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
-	+---------------+---------------+---------------+-------------+
-	|		Command		  |		Auth_Type		|						Auth_Data				  |
-	+---------------+---------------+---------------+-------------+
-	|		Identifire	|		Not_Use			| 				Neighbor_ID				  |
-	+---------------+---------------+---------------+-------------+
-	|						     						 Gateway IP					 						  |
-	+---------------+---------------+---------------+-------------+
-	|						     						 NetMask						  					  |
-	+---------------+---------------+---------------+-------------+
+		|      0        |      1        |      2        |      3      |
+		0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+		+---------------+---------------+---------------+-------------+
+		|		Command		  |		Auth_Type		|						Auth_Data				  |
+		+---------------+---------------+---------------+-------------+
+		|		Identifier	|		Not_Use			| 				Neighbor_ID				  |
+		+---------------+---------------+---------------+-------------+
+		|						     						 Gateway IP					 						  |
+		+---------------+---------------+---------------+-------------+
+		|						     						 NetMask						  					  |
+		+---------------+---------------+---------------+-------------+
 */
 class KAMHeader : public Header
 {
@@ -243,6 +240,9 @@ public:
    */
   virtual TypeId GetInstanceTypeId (void) const;
 
+	/**
+	 * \brief Print the KAM header
+	 */
   virtual void Print (std::ostream& os) const;
 
   /**
@@ -307,7 +307,7 @@ public:
 	}
 
   /**
-   * \brief Get and Set discove ID'.
+   * \brief Get and Set discover ID
    * \param neighborID discover ID
    * \return the discover ID
    */
@@ -351,7 +351,7 @@ public:
   /**
    * \brief Get and Set the mask of the Gateway
    * \param mask the netmask of the destination
-   * \return the the netmask of the destination
+   * \return the netmask of the destination
    */
 	void SetGatewayMask (Ipv4Mask gatewayMask)
 	{
@@ -366,7 +366,7 @@ private:
   uint8_t m_command;  //!< message command
   uint8_t m_authType;  //!< authentication type
   uint16_t m_authData;  //!< authentication data
-	uint8_t m_identifier;	//!< Neighbor Identifier; a randomly genarated number
+	uint8_t m_identifier;	//!< Neighbor Identifier; a randomly generate number
   uint16_t m_neighborID;  //!< neighbor's ID
   Ipv4Address m_gateway;  //!< neighbor's address
   Ipv4Mask m_gatewayMask;  //!< neighbor's network mask
@@ -385,19 +385,19 @@ std::ostream & operator << (std::ostream & os, const KAMHeader & h);
  * \brief ESLR uses Server Router Communication (SRC) header for Server Router Communication protocol
  */
 /**	--------------server-router communication header---------------
-	|      0        |      1        |      2        |      3      |
-	0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
-	+---------------+---------------+---------------+-------------+
-	|						 Seq. No						|N|S|				 Not Use				  |	
-	+---------------+---------------+---------------+-------------+
-	|							   							 Mue													  |
-	+---------------+---------------+---------------+-------------+
-	|               			  			Lambda								          |
-	+---------------+---------------+---------------+-------------+
-	|				          				Server Address										  |
-	+---------------+---------------+---------------+-------------+
-	|						     							NetMask												  |
-	+---------------+---------------+---------------+-------------+
+		|      0        |      1        |      2        |      3      |
+		0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+		+---------------+---------------+---------------+-------------+
+		|						 Seq. No						|N|S|				 Not Use				  |	
+		+---------------+---------------+---------------+-------------+
+		|							   							 Mue													  |
+		+---------------+---------------+---------------+-------------+
+		|               			  			Lambda								          |
+		+---------------+---------------+---------------+-------------+
+		|				          				Server Address										  |
+		+---------------+---------------+---------------+-------------+
+		|						     							NetMask												  |
+		+---------------+---------------+---------------+-------------+
 */
 class SRCHeader : public Header
 {
@@ -455,8 +455,8 @@ public:
 	 * The network flag and the Server flag.
 	 * If administrator sends a average value of the servers of a data center or a cloud, the N bit should be 
 	 * set. 
-	 * Otherwise, the S bit should be set in order to indiacate that the information about a server.
-	 * However, non of these wont consider unless the K1 CCV is enable on the ESLRHeader*/
+	 * Otherwise, the S bit should be set in order to indicate that the information about a server.
+	 */
 	
 	void SetNBit (bool flag)
 	{
@@ -476,9 +476,9 @@ public:
   }
 
   /**
-   * \brief Get and Set Mue value.
-   * \param mue is the rho value
-   * \return the mue value
+   * \brief Get and Set Mu value.
+   * \param Mu is the rho value
+   * \return the Mu value
    */
 	void SetMue (uint32_t mue)
 	{
@@ -491,8 +491,8 @@ public:
 
   /**
    * \brief Get and Set Lambda value.
-   * \param lambda is the rho value
-   * \return the mue lambda
+   * \param Lambda is the rho value
+   * \return the Lambda
    */
 	void SetLambda (uint32_t lambda)
 	{
@@ -520,7 +520,7 @@ public:
   /**
    * \brief Get and Set the mask of the server
    * \param netMask the netmask of the server
-   * \return the the netmask of the server
+   * \return the netmask of the server
    */
 	void SetNetMask (Ipv4Mask netMask)
 	{
@@ -553,17 +553,17 @@ std::ostream & operator << (std::ostream & os, const SRCHeader & h);
  * \brief ESLR Routing Header
  */
 /**	-------------------------ESLR header---------------------------
-	|      0        |      1        |      2        |      3      |
-	0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
-	+---------------+---------------+---------------+-------------+
-	|    Command    |   RU_Command  |    REQ_Type   |    NoE      |
-	+---------------+---------------+---------------+-------------+
-	|FT|P|T|C|D|not |	 Auth_Type	  |	 					Auth_Data				  |
-	+---------------+---------------+---------------+-------------+
-	|                              		                          	|
-	~							   							 RUM							  						~
-	|                                							  							|
-	+---------------+---------------+---------------+-------------+
+		|      0        |      1        |      2        |      3      |
+		0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+		+---------------+---------------+---------------+-------------+
+		|    Command    |   RU_Command  |    REQ_Type   |    NoE      |
+		+---------------+---------------+---------------+-------------+
+		|FT|P|T|C|D|not |	 Auth_Type	  |	 					Auth_Data				  |
+		+---------------+---------------+---------------+-------------+
+		|                              		                          	|
+		~							   							 RUM							  						~
+		|                                							  							|
+		+---------------+---------------+---------------+-------------+
 	Advertisement Options
 		FT			: Fast Trig. Update
 		P				: Periodic Update
@@ -588,7 +588,10 @@ public:
    * \return instance type ID
    */
   virtual TypeId GetInstanceTypeId (void) const;
-
+	
+	/**
+	 * \brief print the ESLR header.
+	 */
   virtual void Print (std::ostream& os) const;
 
   /**
@@ -627,7 +630,7 @@ public:
   /**
    * \brief Get and Set the Route Update Message Type.
    * \param srrtr advertisement type
-   * \return the advertisemetn type
+   * \return the advertisement type
    */
   eslr::EslrHeaderRUCommand GetRuCommand () const
   {
@@ -659,7 +662,6 @@ public:
    */
   uint8_t GetNoe () const
   {
-    // Todo: change this.
     return m_noe;
   }
   void SetNoe (void)

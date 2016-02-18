@@ -22,7 +22,7 @@
 
 namespace ns3 {
 namespace eslr {
-/*
+/**
  * ESLR RUM
 */
 NS_OBJECT_ENSURE_REGISTERED (ESLRrum);
@@ -31,16 +31,16 @@ ESLRrum::ESLRrum(): m_sequenceNumber (0),
                     m_matric (0),
                     m_destination (Ipv4Address ()),
                     m_mask (Ipv4Mask ()),
-										/*K1 (0),
-										K2 (0),
-										K3 (0),*/
 										m_routeTag (0)	
 { 
 	/*Constructor*/ 
 }
+
 TypeId ESLRrum::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::eslr::ESLRrum").SetParent<Header> ().AddConstructor<ESLRrum> ();
+  static TypeId tid = TypeId ("ns3::eslr::ESLRrum").
+                      SetParent<Header> ().
+                      AddConstructor<ESLRrum> ();
   return tid;
 }
 
@@ -54,12 +54,9 @@ ESLRrum::Print (std::ostream & os) const
 {
   os << 
 		"Destination " <<  m_destination << "/" << m_mask << 
-		" Matric " << int (m_matric) << 
+		" Metric " << int (m_matric) << 
 		" Tag " << int (m_routeTag) << 
-		" Sequoence Number "<< int (m_sequenceNumber) << 
-		/*" K1 " << (int)K1 << 
-		" K2 " << (int)K2 <<
-	  " K3 " << (int)K3 << */std::endl;
+		" Sequence Number "<< int (m_sequenceNumber) << std::endl;
 }
 
 uint32_t 
@@ -73,13 +70,12 @@ ESLRrum::Serialize (Buffer::Iterator i) const
 {
   i.WriteHtonU16 (m_sequenceNumber);
 	i.WriteHtonU32 (m_matric);
-	//i.WriteU8 (K1);
-	//i.WriteU8 (K2);
-	//i.WriteU8 (K3);
 	i.WriteU8 (m_routeTag);
+	
 	uint8_t tmp[4];
   m_destination.Serialize (tmp);
   i.Write (tmp, 4);
+  
   i.WriteHtonU32 (m_mask.Get ());
 }
 
@@ -88,13 +84,12 @@ ESLRrum::Deserialize (Buffer::Iterator i)
 {
 	m_sequenceNumber = i.ReadNtohU16 ();
   m_matric = i.ReadNtohU32 ();
-	//K1 = i.ReadU8 ();
-  //K2 = i.ReadU8 ();
-  //K2 = i.ReadU8 ();
   m_routeTag = i.ReadU8 ();
+  
   uint8_t tmp[4];
   i.Read (tmp, 4);
   m_destination  = Ipv4Address::Deserialize (tmp);
+  
   m_mask = i.ReadNtohU32 ();
 
   return GetSerializedSize ();
@@ -123,7 +118,9 @@ KAMHeader::KAMHeader(): m_command (0),
 
 TypeId KAMHeader::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::eslr::KAMHeader").SetParent<Header> ().AddConstructor<KAMHeader> ();
+  static TypeId tid = TypeId ("ns3::eslr::KAMHeader").
+                      SetParent<Header> ().
+                      AddConstructor<KAMHeader> ();
   return tid;
 }
 
@@ -135,7 +132,11 @@ TypeId KAMHeader::GetInstanceTypeId (void) const
 void 
 KAMHeader::Print (std::ostream & os) const
 {
-  os << "ID " << m_neighborID << " Destination " <<  m_gateway << "/" << m_gatewayMask << " Authentication Type " << int (m_authType) << std::endl;
+  os << "ID " << m_neighborID << 
+        " Destination " <<  m_gateway << 
+        "/" << m_gatewayMask << 
+        " Authentication Type " << 
+        int (m_authType) << std::endl;
 }
 
 uint32_t 
@@ -152,9 +153,11 @@ KAMHeader::Serialize (Buffer::Iterator i) const
   i.WriteHtonU16 (m_authData);
 	i.WriteU8 (m_identifier);
   i.WriteHtonU16 (m_neighborID);
+  
   uint8_t tmp[4];
   m_gateway.Serialize (tmp);
   i.Write (tmp, 4);
+  
   i.WriteHtonU32 (m_gatewayMask.Get ());
 }
 
@@ -166,9 +169,11 @@ KAMHeader::Deserialize (Buffer::Iterator i)
   m_authData = i.ReadNtohU16 ();
 	m_identifier = i.ReadU8 ();
 	m_neighborID = i.ReadNtohU16 ();
+  
   uint8_t tmp[4];
   i.Read (tmp, 4);
   m_gateway  = Ipv4Address::Deserialize (tmp);
+  
   m_gatewayMask = i.ReadNtohU32 ();
 
   return GetSerializedSize ();
@@ -196,7 +201,9 @@ SRCHeader::SRCHeader(): m_seqNo (0),
 
 TypeId SRCHeader::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::eslr::SRCHeader").SetParent<Header> ().AddConstructor<SRCHeader> ();
+  static TypeId tid = TypeId ("ns3::eslr::SRCHeader").
+                      SetParent<Header> ().
+                      AddConstructor<SRCHeader> ();
   return tid;
 }
 
@@ -208,7 +215,10 @@ TypeId SRCHeader::GetInstanceTypeId (void) const
 void 
 SRCHeader::Print (std::ostream & os) const
 {
-  os << "Server Address " <<  m_serverAddress << "/" << m_netMask << " Lambda " << int (m_lambda)  << " Mue "<< int (m_mue) << std::endl;
+  os << "Server Address " <<  m_serverAddress << 
+        "/" << m_netMask << 
+        " Lambda " << int (m_lambda)  << 
+        " Mu "<< int (m_mue) << std::endl;
 }
 
 uint32_t 
@@ -224,9 +234,11 @@ SRCHeader::Serialize (Buffer::Iterator i) const
   i.WriteHtonU16 (m_flagSet);
   i.WriteHtonU32 (m_mue);
   i.WriteHtonU32 (m_lambda);
+	
 	uint8_t tmp[4];
   m_serverAddress.Serialize (tmp);
   i.Write (tmp, 4);
+  
   i.WriteHtonU32 (m_netMask.Get ());
 }
 
@@ -237,9 +249,11 @@ SRCHeader::Deserialize (Buffer::Iterator i)
 	m_flagSet = i.ReadNtohU16 ();
   m_mue = i.ReadNtohU32 ();
   m_lambda = i.ReadNtohU32 ();
+ 
   uint8_t tmp[4];
   i.Read (tmp, 4);
   m_serverAddress  = Ipv4Address::Deserialize (tmp);
+  
   m_netMask = i.ReadNtohU32 ();
 
   return GetSerializedSize ();
@@ -268,7 +282,9 @@ ESLRRoutingHeader::ESLRRoutingHeader () : m_command (0),
 
 TypeId ESLRRoutingHeader::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::eslr::ESLRRoutingHeader").SetParent<Header> ().AddConstructor<ESLRRoutingHeader> ();
+  static TypeId tid = TypeId ("ns3::eslr::ESLRRoutingHeader").
+                              SetParent<Header> ().
+                              AddConstructor<ESLRRoutingHeader> ();
   return tid;
 }
 
@@ -283,42 +299,53 @@ ESLRRoutingHeader::Print (std::ostream & os) const
   os << "Command " << int (m_command);
   os << " Route Update Type " << int (m_ruType);
   os << " Route Update Request Type  " << int (m_reqType);
+  
   if (m_reqType == NE)
     os << " Requested Number of Entries " << int(m_noe);
+  
   os << " Authentication Type " << int(m_authType);
-  os << " Aunthentication Data " << int(m_authData);
+  os << " Authentication Data " << int(m_authData);
 	os << " Route Update Type " << int(m_advertisementType);
+	
 	if (GetFastTrigUpdate ())
 		os << " A Fast Triggered Update ";
 	else if (GetPeriodicUpdate())
 		os << " A Periodic Update ";
 	else if (GetTrigUpdate ())
 		os << " A Regular Triggered Update ";
+	
 	if (GetCbit ())
-		os << " The routes are possibally connected routes ";
+		os << " The routes are possibly connected routes ";
 	else if (GetDbit ())
-		os << " The routes are possibally poisoned routes "; 
+		os << " The routes are possibly poisoned routes "; 
+  
   if (m_command == RU)
   {
-    for (std::list<ESLRrum>::const_iterator iter = m_rumList.begin (); iter != m_rumList.end (); iter ++)
+    for ( std::list<ESLRrum>::const_iterator iter = m_rumList.begin (); 
+          iter != m_rumList.end (); 
+          iter ++)
     {
-      os << " RUMS |  ";
+      os << " RUMS | ";
       iter->Print (os);
     }
   }
   else if (m_command == KAM)
   {
-    for (std::list<KAMHeader>::const_iterator iter = m_helloList.begin (); iter != m_helloList.end (); iter ++)
+    for ( std::list<KAMHeader>::const_iterator iter = m_helloList.begin (); 
+          iter != m_helloList.end (); 
+          iter ++)
     {
-      os << " KAMS |  ";
+      os << " KAMS | ";
       iter->Print (os);
     }
   }
   else if (m_command == SRC)
   {
-    for (std::list<SRCHeader>::const_iterator iter = m_serverList.begin (); iter != m_serverList.end (); iter ++)
+    for ( std::list<SRCHeader>::const_iterator iter = m_serverList.begin (); 
+          iter != m_serverList.end (); 
+          iter ++)
     {
-      os << " SCR |  ";
+      os << " SCR | ";
       iter->Print (os);
     }
   }
@@ -330,6 +357,7 @@ ESLRRoutingHeader::GetSerializedSize () const
   ESLRrum rum;
   KAMHeader kam;
   SRCHeader src;
+  
   if (m_command == RU) // Get the size of the Route Update packet
   {
     return ESLR_BASE_SIZE + m_rumList.size () * rum.GetSerializedSize ();
@@ -342,6 +370,7 @@ ESLRRoutingHeader::GetSerializedSize () const
   {
     return ESLR_BASE_SIZE + m_serverList.size () * src.GetSerializedSize ();
   }
+  
   return 0; // return 0 if the message miss matches. 
 }
 
@@ -360,7 +389,9 @@ ESLRRoutingHeader::Serialize (Buffer::Iterator start) const
 
   if (m_command == RU) // Get the size of the Route Update packet
   {
-    for (std::list<ESLRrum>::const_iterator iter = m_rumList.begin (); iter != m_rumList.end (); iter ++)
+    for (std::list<ESLRrum>::const_iterator iter = m_rumList.begin (); 
+				 iter != m_rumList.end (); 
+				 iter ++)
     {
       iter->Serialize (i);
       i.Next(iter->GetSerializedSize ());
@@ -368,7 +399,9 @@ ESLRRoutingHeader::Serialize (Buffer::Iterator start) const
   }
   else if (m_command == KAM) // Get the size of the Hello/Keep Alive Message packet
   {
-    for (std::list<KAMHeader>::const_iterator iter = m_helloList.begin (); iter != m_helloList.end (); iter ++)
+    for (std::list<KAMHeader>::const_iterator iter = m_helloList.begin (); 
+				 iter != m_helloList.end (); 
+				 iter ++)
     {
       iter->Serialize (i);
       i.Next(iter->GetSerializedSize ());
@@ -376,7 +409,9 @@ ESLRRoutingHeader::Serialize (Buffer::Iterator start) const
   }
   else if (m_command == SRC) // Get the size of the Server-Router Communication packet
   {
-    for (std::list<SRCHeader>::const_iterator iter = m_serverList.begin (); iter != m_serverList.end (); iter ++)
+    for (std::list<SRCHeader>::const_iterator iter = m_serverList.begin (); 
+				 iter != m_serverList.end (); 
+				 iter ++)
     {
       iter->Serialize (i);
       i.Next(iter->GetSerializedSize ());
@@ -413,7 +448,8 @@ ESLRRoutingHeader::Deserialize (Buffer::Iterator start)
   if (m_command == RU) // Get the size of the Route Update packet
   {
     numberofMessages = (i.GetSize () - ESLR_BASE_SIZE) / RUM_SIZE;
-    for (uint8_t n=0; n<numberofMessages; n++)
+
+		for (uint8_t n = 0; n<numberofMessages; n++)
     {
       ESLRrum rum;
       i.Next (rum.Deserialize (i));
@@ -424,7 +460,8 @@ ESLRRoutingHeader::Deserialize (Buffer::Iterator start)
   else if (m_command == KAM) // Get the size of the Hello/Keep Alive Message packet
   {
     numberofMessages = (i.GetSize () - ESLR_BASE_SIZE) / KAM_SIZE;
-    for (uint8_t n=0; n<numberofMessages; n++)
+
+		for (uint8_t n=0; n<numberofMessages; n++)
     {
       KAMHeader kam;
       i.Next (kam.Deserialize (i));
@@ -435,7 +472,8 @@ ESLRRoutingHeader::Deserialize (Buffer::Iterator start)
   else if (m_command == SRC) // Get the size of the Server-Router Communication packet
   {
     numberofMessages = (i.GetSize () - ESLR_BASE_SIZE) / SRCH_SIZE;
-    for (uint8_t n=0; n<numberofMessages; n++)
+
+		for (uint8_t n=0; n<numberofMessages; n++)
     {
       SRCHeader src;
       i.Next (src.Deserialize (i));
@@ -460,7 +498,7 @@ ESLRRoutingHeader::AddRum (ESLRrum rum)
 void 
 ESLRRoutingHeader::DeleteRum (ESLRrum rum)
 {
-  for (std::list<ESLRrum>::iterator it = m_rumList.begin (); it!= m_rumList.end (); it ++)
+  for (std::list<ESLRrum>::iterator it = m_rumList.begin (); it!= m_rumList.end (); it++)
   {
     if (rum.GetDestAddress () == it->GetDestAddress ())
     { 

@@ -69,6 +69,7 @@ namespace eslr {
 
   NeighborTable::NeighborTable () 
   {
+		/*cstrctr*/
   }
   NeighborTable::~NeighborTable (){/*Destructor*/}
 
@@ -81,28 +82,32 @@ namespace eslr {
   void 
   NeighborTable::AddNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime)
   {    
-    NS_LOG_FUNCTION ("Added a new Neighbor " 
-                      << neighborEntry->GetNeighborID());
+    NS_LOG_FUNCTION (this << neighborEntry->GetNeighborID());
     
-    EventId invalidateEvent = Simulator::Schedule (invalidateTime, &NeighborTable::InvalidateNeighbor, this, neighborEntry, deleteTime);
-    m_neighborTable.push_front(std::make_pair (neighborEntry,invalidateEvent));
+    EventId invalidateEvent = Simulator::Schedule (invalidateTime, 
+																									 &NeighborTable::InvalidateNeighbor, 
+																									 this, 
+																									 neighborEntry, 
+																									 deleteTime);
+    m_neighborTable.push_front(std::make_pair (neighborEntry, invalidateEvent));
   }
 
 	void 
 	NeighborTable::AddVoidNeighbor (NeighborTableEntry *neighborEntry, Time removeTime)
 	{
-		NS_LOG_LOGIC ("Adding a neighbor in to void state " << 
-										neighborEntry->GetNeighborID());
+		NS_LOG_FUNCTION (this << neighborEntry->GetNeighborID());
 
-		EventId removeEvent = Simulator::Schedule (removeTime, &NeighborTable::DeleteVoidNeighbor, this, neighborEntry);
+		EventId removeEvent = Simulator::Schedule (removeTime, 
+																							 &NeighborTable::DeleteVoidNeighbor, 
+																							 this, 
+																							 neighborEntry);
 		m_neighborTable.push_back(std::make_pair (neighborEntry,removeEvent)); 
 	}
 
 	bool 
 	NeighborTable::DeleteVoidNeighbor (NeighborTableEntry *neighborEntry)
 	{
-    NS_LOG_FUNCTION ("Delete the void neighbor " 
-                      << neighborEntry->GetNeighborID());
+    NS_LOG_FUNCTION (this << neighborEntry->GetNeighborID());
 
     bool retVal = false;
     NeighborI it;
@@ -121,38 +126,41 @@ namespace eslr {
     }
     if (!retVal)
     {
-      NS_LOG_LOGIC ("Neighbor not available: " 
+      NS_LOG_LOGIC ("No neighbor is available for " 
                       << int (neighborEntry->GetNeighborID ()));
       return retVal;        
     }
     return retVal;
-
 	}
 
   bool 
   NeighborTable::UpdateNeighbor (NeighborTableEntry *neighborEntry, Time invalidateTime, Time deleteTime)
   {
-    NS_LOG_FUNCTION ("Update the neighbor " 
-                      << neighborEntry->GetNeighborID());
+    NS_LOG_FUNCTION (this << neighborEntry->GetNeighborID());
 
     bool retVal = false;
     NeighborI it;
 
     for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
     {
-      if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && (it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()))
+      if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && 
+					(it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()))
       {
         delete it->first;
         it->first = neighborEntry;
         it->second.Cancel ();
-        it->second = Simulator::Schedule (invalidateTime, &NeighborTable::InvalidateNeighbor, this, it->first, deleteTime);
+        it->second = Simulator::Schedule (invalidateTime, 
+																					&NeighborTable::InvalidateNeighbor, 
+																					this, 
+																					it->first, 
+																					deleteTime);
         retVal = true;
         break;
       }
     }
     if (!retVal)
     {
-      NS_LOG_LOGIC ("Neighbor not available: " 
+      NS_LOG_LOGIC ("No neighbor is available for " 
                       << int (neighborEntry->GetNeighborID ()));
       return retVal;        
     }
@@ -163,29 +171,34 @@ namespace eslr {
   bool 
   NeighborTable::InvalidateNeighbor (NeighborTableEntry *neighborEntry, Time deleteTime)
   {
-    NS_LOG_FUNCTION ("Invalidate the neighbor " 
-                      << neighborEntry->GetNeighborID());
+    NS_LOG_FUNCTION (this << neighborEntry->GetNeighborID());
 
     bool retVal = false;
     NeighborI it;
 
     for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
     {
-      if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && (it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()))
+      if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && 
+					(it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()))
       {
-        NS_LOG_FUNCTION ("Invalidate route records that refers " << neighborEntry->GetNeighborID ());
+        NS_LOG_FUNCTION ("Invalidate route records that are referring " << 
+													neighborEntry->GetNeighborID ());
 
 				it->first->SetValidity (eslr::INVALID);
-        if (it->second.IsRunning ())
+        
+				if (it->second.IsRunning ())
           it->second.Cancel ();
-        it->second = Simulator::Schedule (deleteTime, &NeighborTable::DeleteNeighbor, this, it->first);
+        it->second = Simulator::Schedule (deleteTime, 
+																					&NeighborTable::DeleteNeighbor, 
+																					this, 
+																					it->first);
         retVal = true;
         break;
       }
     }
     if (!retVal)
     {
-      NS_LOG_LOGIC ("Neighbor not available: " 
+      NS_LOG_LOGIC ("No neighbor is available for " 
                     << int (neighborEntry->GetNeighborID ()));
       return retVal;        
     }
@@ -195,26 +208,16 @@ namespace eslr {
   bool 
   NeighborTable::DeleteNeighbor (NeighborTableEntry *neighborEntry)
   {
-    NS_LOG_FUNCTION ("Delete the neighbor " 
-                      << neighborEntry->GetNeighborID());
+    NS_LOG_FUNCTION (this << neighborEntry->GetNeighborID());
 
     bool retVal = false;
     NeighborI it;
 
     for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
     {
-      if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && (it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()))
+      if ((it->first->GetNeighborID () == neighborEntry->GetNeighborID ()) && 
+					(it->first->GetNeighborAddress () == neighborEntry->GetNeighborAddress ()))
       {
-        // FIXME: 
-				// Along with the deleting neighbor,
-        // invalidate all route records refering the neighbor as the gateway
-        //routeInstance.InvalidateRoutesForGateway (neighborEntry->GetNeighborAddress (),
-        //                                         m_routeTimeoutDelay, m_routeGarbageCollectionDelay,
-        //                                         m_routeSettlingDelay, eslr::BACKUP);
-        //routeInstance.InvalidateRoutesForGateway (neighborEntry->GetNeighborAddress (),
-        //                                         m_routeTimeoutDelay, m_routeGarbageCollectionDelay,
-        //                                         m_routeSettlingDelay,eslr::MAIN);
-
         delete neighborEntry;
         m_neighborTable.erase (it);
         retVal = true;
@@ -223,7 +226,7 @@ namespace eslr {
     }
     if (!retVal)
     {
-      NS_LOG_LOGIC ("Neighbor not available: " 
+      NS_LOG_LOGIC ("No neighbor is available for " 
                       << int (neighborEntry->GetNeighborID ()));
       return retVal;        
     }
@@ -233,9 +236,12 @@ namespace eslr {
   bool 
   NeighborTable::FindNeighbor (uint32_t neighborID, NeighborI &retNeighborEntry)
   {
-    bool retVal = false;
+		NS_LOG_LOGIC (this << neighborID);
+
+		bool retVal = false;
     NeighborI it;
-    for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
+
+		for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
     {
       if ((it->first->GetNeighborID () == neighborID))
       {
@@ -246,8 +252,7 @@ namespace eslr {
     }
     if (!retVal)
     {
-      NS_LOG_LOGIC ("Neighbor not available: " 
-                      << int (neighborID));
+      NS_LOG_LOGIC ("No neighbor is available for " << int (neighborID));
       return retVal;        
     }
     return retVal;
@@ -256,12 +261,15 @@ namespace eslr {
 	bool 
   NeighborTable::FindValidNeighbor (uint32_t neighborID, NeighborI &retNeighborEntry)
   {
+		NS_LOG_FUNCTION (this << neighborID);
+
     bool retVal = false;
     NeighborI it;
 
     for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
     {
-      if ((it->first->GetNeighborID () == neighborID) && (it->first->GetValidity () == eslr::VALID))
+      if ((it->first->GetNeighborID () == neighborID) && 
+					(it->first->GetValidity () == eslr::VALID))
       {
         retNeighborEntry = it;
         retVal = true;
@@ -271,8 +279,7 @@ namespace eslr {
 
     if (!retVal)
     {
-      NS_LOG_LOGIC ("Neighbor not available: " 
-                      << int (neighborID));
+      NS_LOG_LOGIC ("No neighbor is available for " << int (neighborID));
       return retVal;        
     }
 
@@ -282,11 +289,15 @@ namespace eslr {
 	bool 
   NeighborTable::FindValidNeighborForAddress (Ipv4Address address, NeighborI &retNeighborEntry)
   {
+		NS_LOG_FUNCTION (this << address);
+
     bool retVal = false;
     NeighborI it;
-    for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
+    
+		for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
     {
-      if ((it->first->GetNeighborAddress () == address) && (it->first->GetValidity () == eslr::VALID))
+      if ((it->first->GetNeighborAddress () == address) && 
+					(it->first->GetValidity () == eslr::VALID))
       {
         retNeighborEntry = it;
         retVal = true;
@@ -295,8 +306,7 @@ namespace eslr {
     }
     if (!retVal)
     {
-      NS_LOG_LOGIC ("Neighbor not available: " 
-                      << address);
+      NS_LOG_LOGIC ("No neighbor is available for " << address);
       return retVal;        
     }
     return retVal;   
@@ -306,9 +316,12 @@ namespace eslr {
   bool
   NeighborTable::FindNeighborForAddress (Ipv4Address address, NeighborI &retNeighborEntry)
   {
+		NS_LOG_FUNCTION (this << address);
+
     bool retVal = false;
     NeighborI it;
-    for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
+    
+		for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
     {
       if (it->first->GetNeighborAddress () == address) 
       {
@@ -319,8 +332,7 @@ namespace eslr {
     }
     if (!retVal)
     {
-      NS_LOG_LOGIC ("Neighbor not available: "
-                      << address);
+      NS_LOG_LOGIC ("No neighbor is available " << address);
       return retVal;
     }
     return retVal;
@@ -329,10 +341,14 @@ namespace eslr {
 	bool 
 	NeighborTable::FindVoidNeighbor (uint16_t id)
 	{
+		NS_LOG_FUNCTION (this << id);
+
 		bool retVal = false;
+		
 		for (NeighborI it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
 		{
-			if ((it->first->GetNeighborID () == id) && (it->first->GetValidity () == eslr::VOID))
+			if ((it->first->GetNeighborID () == id) && 
+					(it->first->GetValidity () == eslr::VOID))
 			{
 				retVal = true;
 				break;
@@ -344,11 +360,15 @@ namespace eslr {
 	bool 
 	NeighborTable::FindVoidNeighborForAddress (Ipv4Address address, NeighborI &retNeighborEntry)
 	{
+		NS_LOG_FUNCTION (this << address);
+
 		bool retVal = false;
 		NeighborI it;
+		
 		for (it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
 		{
-			if ((it->first->GetNeighborAddress () == address) && (it->first->GetValidity () == eslr::VOID))
+			if ((it->first->GetNeighborAddress () == address) && 
+					(it->first->GetValidity () == eslr::VOID))
 			{
 				retNeighborEntry = it;
 				retVal = true;
@@ -357,7 +377,7 @@ namespace eslr {
 		}
 		if (!retVal)
 		{
-			NS_LOG_LOGIC ("A void neighbor is not in the Table" << address);
+			NS_LOG_LOGIC ("No VOID neighbor found for " << address);
 			return retVal;
 		}
 		return retVal;
@@ -366,6 +386,8 @@ namespace eslr {
   void 
   NeighborTable::ReturnNeighborTable (NeighborTableInstance &instance)
   {
+		NS_LOG_FUNCTION (this);
+		
     for (NeighborI it = m_neighborTable.begin ();  it!= m_neighborTable.end (); it++)
     {
       instance.push_front(std::make_pair (it->first,it->second));
@@ -375,6 +397,8 @@ namespace eslr {
   void 
   NeighborTable::PrintNeighborTable (Ptr<OutputStreamWrapper> stream) const
   {
+		NS_LOG_FUNCTION (this);
+		
     std::ostream* os = stream->GetStream ();
 
     *os << "Neighbor ID  Neighbor Address    Local Interface  Auth Type     Validity" << '\n';

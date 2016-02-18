@@ -279,22 +279,6 @@ private:
   void DoSendRouteUpdate (eslr::UpdateType updateType);
 
   /**
-   * \brief Send Routing Request for a specified IP address.
-   * \Todo : implement this method to request from all nodes in a network using multicasting.
-   * \param toAddress the destination where we are requesting the routing table
-   * \param reqType the type of the request :
-   *        OE = 0x01, //!< Only one Entry 
-   *        NE = 0x02, //!< Number of Entries specified in the ESLRRoutingHeader::NoE
-   *        ET = 0x03, //!< Entire Table
-   *  in the case of NE, the ESLR header has to specify how may entries are requesting. 
-   *  That is done setting the NoE field in the ESLR header. 
-   *  In one ESLR header, it is possible to request maximum of 255 routes. 
-   *  However, based on the MTU of a link, number of request routes attach to the ESLR header is getting limited
-   *  For an example, for a link of 1500bytes, maximum number of routes is 98 records.
-   */
-  void SendRouteRequestTo (Ipv4Address toAddress , eslr::EslrHeaderRequestType reqType);
-
-  /**
    * \brief Send Triggered Routing Updates on all interfaces.
    */
   void SendTriggeredRouteUpdate ();
@@ -368,7 +352,16 @@ private:
   * every m_printDuration the function will output number of protocol messages
   */
   void PrintStats ();
-  
+
+	/**
+	 * \brief Send Route Pull messages amoung the neighbors for disconnected routers
+	 * 				Find the routers which are invalidated because of the link disconnection
+	 * 				Check whether any backup path is available or not
+	 * 				if there is no backuppath send a RRQ message among the neighbors to get any available rouer
+	 * 				
+	 * \param interface the affected interface*/
+	void PullRoutes (uint32_t interface);
+
 // \name For prtocol management
 // \{
 // note: Since the result of socket->GetBoundNetDevice ()->GetIfIndex () is ambiguity and 

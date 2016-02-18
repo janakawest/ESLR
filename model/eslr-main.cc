@@ -435,7 +435,7 @@ EslrRoutingProtocol::NotifyInterfaceDown (uint32_t interface)
   {
 		if (it->first->GetInterface () != interface)
 		{
-	    if (m_interfaceExclusions.find (interface) == m_interfaceExclusions.end ())
+	    if (m_interfaceExclusions.find (it->first->GetInterface ()) == m_interfaceExclusions.end ())
 	    {
 				// Authentication is necessary
   			hdr.SetAuthType (it->first->GetAuthType ()); 
@@ -458,12 +458,108 @@ EslrRoutingProtocol::NotifyInterfaceDown (uint32_t interface)
   //Clear the temporary neighbor table instance
   tempNeighbor.clear ();
 
+	// Send Route Pull request for the routers invalidated and does not have any backup routes.
+	PullRoutes (interface);
+
 	// Re schedule the triggered update
 	NS_LOG_DEBUG ("ESLR: Reset the triggered hold-down");
 	Time delay = Seconds (m_rng->GetValue (	m_minTriggeredCooldownDelay.GetSeconds (),
 	                      									m_maxTriggeredCooldownDelay.GetSeconds ()));
   m_nextTriggeredUpdate = Simulator::Schedule (delay, &EslrRoutingProtocol::DoSendRouteUpdate,
                                            this, eslr::TRIGGERED);
+}
+
+void
+EslrRoutingProtocol::PullRoutes (uint32_t interface)
+{
+	bool foundRoutes = false;
+	RoutingTable::RoutingTableInstance routes;
+	uint32_t dInterface = interface;
+	
+	foundRoutes = m_routing.RoutesWithNoBackupRoutes (dInterface, routes);
+
+  // Acquiring an instance of the neighbor table
+  NeighborTable::NeighborTableInstance tempNeighbor;
+  m_neighborTable.ReturnNeighborTable (tempNeighbor);
+  NeighborTable::NeighborI it;
+	
+	if (foundRoutes)
+	{
+    ESLRRoutingHeader hdr;	
+    ESLRrum rum;
+
+    for (it = tempNeighbor.begin ();  it != tempNeighbor.end (); it++)
+    {
+      if (it->first->GetInterface () == dInterface)
+      {
+        NS_LOG_LOGIC("ESLR: the disconnected interface is omitted");
+        continue;
+      }
+      
+      if (m_interfaceExclusions.find (it->first->GetInterface ()) == m_interfaceExclusions.end ())
+      {
+        // In case number of destination addresses exceeds the header size
+        // Calculating the Number of RUMs that can add to the ESLR Routing Header
+        uint16_t mtu = m_ipv4->GetMtu (it->first->GetInterface ());
+        uint16_t maxRum = (mtu - 
+                           Ipv4Header ().GetSerializedSize () - 
+                           UdpHeader ().GetSerializedSize () - 
+                           ESLRRoutingHeader ().GetSerializedSize ()
+                          ) / ESLRrum ().GetSerializedSize ();
+
+        Ptr<Packet> p = Create<Packet> ();
+        SocketIpTtlTag tag;
+        p->RemovePacketTag (tag);
+        tag.SetTtl (0);
+        p->AddPacketTag (tag);
+
+
+        hdr.SetCommand (eslr::RU);
+        hdr.SetRuCommand (eslr::REQUEST);
+        hdr.SetRoutingTableRequestType (eslr::NE);
+        hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
+        hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr
+
+        RoutingTable::RoutesI rtIter;
+        for (rtIter = routes.begin (); rtIter != routes.end (); rtIter++)
+        {
+					std::cout << "there are routes " << rtIter->first->GetDestNetwork () << std::endl;
+
+          // No split Horizon is considered in this          	
+				  rum.SetSequenceNo (1); // Since this is a requesting message, no deed to consider the sequence number 
+          rum.SetMatric (0); // As disconnected the delay is 0
+          rum.SetDestAddress (rtIter->first->GetDestNetwork ());
+          rum.SetDestMask (rtIter->first->GetDestNetworkMask ());
+
+          hdr.AddRum (rum);
+          if (hdr.GetNoe () == maxRum)
+          {
+            p->AddHeader (hdr);
+            NS_LOG_LOGIC ("ESLR: SendTo: " << *p);
+            
+            // send it via link local broadcast
+            Ipv4Address broadAddress = it->first->GetNeighborAddress ().GetSubnetDirectedBroadcast (it->first->GetNeighborMask ());
+            it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (broadAddress, ESLR_MULT_PORT));
+            p->RemoveHeader (hdr);
+            hdr.ClearRums ();
+          }
+        }
+        if (hdr.GetNoe () > 0)
+        {
+          p->AddHeader (hdr);
+          NS_LOG_LOGIC ("ESLR: SendTo: " << *p);
+          
+          // send it via link local broadcast  
+          Ipv4Address broadAddress = it->first->GetNeighborAddress ().GetSubnetDirectedBroadcast (it->first->GetNeighborMask ());   
+          it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (broadAddress, ESLR_MULT_PORT));
+        }
+      }
+    }    
+    // Finally clear out the created table instance of the main routing table.
+    routes.clear ();
+    // Clear the temporary neighbor table instance
+    tempNeighbor.clear ();
+	}
 }
 
 void
@@ -741,86 +837,6 @@ void EslrRoutingProtocol::sendKams ()
   m_nextKeepAliveMessage = Simulator::Schedule (sendKam, &EslrRoutingProtocol::sendKams, this);
 }
 
-//void 
-//EslrRoutingProtocol::SendRouteRequestTo (Ipv4Address toAddress, eslr::EslrHeaderRequestType reqType)
-//{
-//  // At the moment, in this version of ESLR, routes are requesting from only one node.
-//  
-//  NS_LOG_FUNCTION (this << toAddress << reqType);
-//  Ptr<Packet> p = Create<Packet> ();
-//  SocketIpTtlTag tag;
-
-//  //p->RemovePacketTag (tag);
-//  tag.SetTtl (1);
-//  p->AddPacketTag (tag);  
-//  
-//  //Get the relevant neighbor information for the provided destination address
-//  NeighborTable::NeighborI it;
-//  bool foundNeighbor =  m_neighborTable.FindValidNeighborForAddress (toAddress, it);
-//  if (!foundNeighbor)
-//  {
-//    NS_ABORT_MSG ("No neighbor found for the specified destination address, aborting!.");  
-//  }
-//  
-//  if (reqType == eslr::OE)
-//  {
-//    NS_LOG_LOGIC("Requesting only one record from " << toAddress);
-
-//    ESLRRoutingHeader hdr;
-//    
-//    hdr.SetCommand (eslr::RU);
-//    hdr.SetRuCommand (eslr::REQUEST);
-//    hdr.SetRoutingTableRequestType (eslr::OE);
-//    hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
-//    hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr
-//  }
-//  else if (reqType == eslr::NE)
-//  {
-//    NS_LOG_LOGIC("Requesting set of records from " << toAddress);
-
-//    ESLRRoutingHeader hdr;
-//    
-//    hdr.SetCommand (eslr::RU);
-//    hdr.SetRuCommand (eslr::REQUEST);
-//    hdr.SetRoutingTableRequestType (eslr::NE);
-//    hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
-//    hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr
-//  }
-//  else if (reqType == eslr::ET || reqType == eslr::ND)
-//  {
-//    NS_LOG_LOGIC("Requesting the entire routing table from " << toAddress);
-
-//    ESLRRoutingHeader hdr;
-//    
-//    hdr.SetCommand (eslr::RU);
-//    hdr.SetRuCommand (eslr::REQUEST);
-//		if (reqType == eslr::ND)
-//			hdr.SetRoutingTableRequestType (eslr::ND);
-//		if (reqType == eslr::ET)
-//    	hdr.SetRoutingTableRequestType (eslr::ET);
-//    hdr.SetAuthType (it->first->GetAuthType ()); // The Authentication type registered to the Nbr
-//    hdr.SetAuthData (it->first->GetAuthData ()); // The Authentication phrase registered to the Nbr  
-//    
-//    // create a RUM and add some dummy data
-//    ESLRrum rum;
-//    
-//    rum.SetSequenceNo (0);
-//    rum.SetMatric (0);
-//    rum.SetDestAddress (Ipv4Address ());
-//    rum.SetDestMask (Ipv4Mask ());
-
-//    hdr.AddRum (rum);
-//    
-//    p->AddHeader (hdr);
-//    
-//    NS_LOG_DEBUG ("ESLR: send the route request to : " << toAddress);
-//    
-//    // send it via link local broadcast    
-//    Ipv4Address broadAddress = toAddress.GetSubnetDirectedBroadcast (it->first->GetNeighborMask ());  
-//    it->first->GetSocket ()->SendTo (p, 0, InetSocketAddress (broadAddress, ESLR_MULT_PORT));
-//  }  
-//}
-
 void 
 EslrRoutingProtocol::SendTriggeredRouteUpdate ()
 {
@@ -1075,7 +1091,7 @@ EslrRoutingProtocol::Receive (Ptr<Socket> socket)
         return;
       }
      
-      m_protocolMessages++; // Inrement the debug message counter.
+      m_protocolMessages++; // Increment the debug message counter.
       if (hdr.GetRuCommand () == eslr::REQUEST) // This could be either VOID state or VALID state
       {
         // Authentication is not checked for the route requests if the state is VOID
@@ -2088,7 +2104,13 @@ EslrRoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header, Ptr<N
 }
 
 bool 
-EslrRoutingProtocol::RouteInput (Ptr<const Packet> p, const Ipv4Header &header, Ptr<const NetDevice> idev, UnicastForwardCallback ucb, MulticastForwardCallback mcb, LocalDeliverCallback lcb, ErrorCallback ecb)
+EslrRoutingProtocol::RouteInput (Ptr<const Packet> p, 
+		const Ipv4Header &header, 
+		Ptr<const NetDevice> idev, 
+		UnicastForwardCallback ucb, 
+		MulticastForwardCallback mcb,
+	 	LocalDeliverCallback lcb, 
+		ErrorCallback ecb)
 {
   NS_LOG_FUNCTION (this << p << header << header.GetSource () << header.GetDestination () << idev);
   
@@ -2237,7 +2259,17 @@ EslrRoutingProtocol::AddDefaultRouteTo (Ipv4Address nextHop, uint32_t interface)
 }
 
 void 
-EslrRoutingProtocol::AddNetworkRouteTo (Ipv4Address network, Ipv4Mask networkMask, Ipv4Address nextHop, uint32_t interface, uint16_t metric, uint16_t sequenceNo, eslr::RouteType routeType, eslr::Table table, Time timeoutTime, Time garbageCollectionTime, Time settlingTime)
+EslrRoutingProtocol::AddNetworkRouteTo (Ipv4Address network, 
+		Ipv4Mask networkMask, 
+		Ipv4Address nextHop, 
+		uint32_t interface, 
+		uint16_t metric, 
+		uint16_t sequenceNo, 
+		eslr::RouteType routeType, 
+		eslr::Table table, 
+		Time timeoutTime, 
+		Time garbageCollectionTime, 
+		Time settlingTime)
 {
   NS_LOG_FUNCTION (this << network << networkMask << nextHop << interface << metric << sequenceNo << routeType);
 
@@ -2253,7 +2285,16 @@ EslrRoutingProtocol::AddNetworkRouteTo (Ipv4Address network, Ipv4Mask networkMas
 }
 
 void 
-EslrRoutingProtocol::AddNetworkRouteTo (Ipv4Address network, Ipv4Mask networkMask, uint32_t interface, uint16_t metric, uint16_t sequenceNo, eslr::RouteType routeType, eslr::Table table, Time timeoutTime, Time garbageCollectionTime, Time settlingTime)
+EslrRoutingProtocol::AddNetworkRouteTo (Ipv4Address network, 
+		Ipv4Mask networkMask, 
+		uint32_t interface, 
+		uint16_t metric, 
+		uint16_t sequenceNo, 
+		eslr::RouteType routeType, 
+		eslr::Table table, 
+		Time timeoutTime, 
+		Time garbageCollectionTime, 
+		Time settlingTime)
 {
   NS_LOG_FUNCTION (this << network << networkMask << interface << metric << sequenceNo << routeType);
 
@@ -2270,7 +2311,15 @@ EslrRoutingProtocol::AddNetworkRouteTo (Ipv4Address network, Ipv4Mask networkMas
 }
 
 void 
-EslrRoutingProtocol::AddHostRouteTo (Ipv4Address host, uint32_t interface, uint16_t metric, uint16_t sequenceNo, eslr::RouteType routeType, eslr::Table table, Time timeoutTime, Time garbageCollectionTime, Time settlingTime)
+EslrRoutingProtocol::AddHostRouteTo (Ipv4Address host, 
+		uint32_t interface, 
+		uint16_t metric, 
+		uint16_t sequenceNo, 
+		eslr::RouteType routeType, 
+		eslr::Table table, 
+		Time timeoutTime, 
+		Time garbageCollectionTime, 
+		Time settlingTime)
 {
   NS_LOG_FUNCTION (this << host << interface << metric << sequenceNo << routeType);
 
@@ -2329,7 +2378,17 @@ EslrRoutingProtocol::InvalidateBrokenRoute (Ipv4Address destAddress, Ipv4Mask de
 }
 
 void 
-EslrRoutingProtocol::UpdateRoute (Ipv4Address network, Ipv4Mask networkMask, Ipv4Address nextHop, uint32_t interface, uint16_t metric, uint16_t sequenceNo, eslr::RouteType routeType, eslr::Table table, Time timeoutTime, Time garbageCollectionTime, Time settlingTime)
+EslrRoutingProtocol::UpdateRoute (Ipv4Address network, 
+		Ipv4Mask networkMask, 
+		Ipv4Address nextHop, 
+		uint32_t interface, 
+		uint16_t metric, 
+		uint16_t sequenceNo, 
+		eslr::RouteType routeType, 
+		eslr::Table table, 
+		Time timeoutTime, 
+		Time garbageCollectionTime, 
+		Time settlingTime)
 {
   NS_LOG_FUNCTION (this << network << networkMask << nextHop << interface << metric << sequenceNo << routeType);
 
@@ -2474,7 +2533,7 @@ EslrRoutingProtocol::GetLinkDetails (Ptr<NetDevice> dev, double &transDelay, dou
   // Available bandwidth of the link 
   availableBW = linkBandwidth - tempValue;
   
-  //based on the avilable bandwidth, the packet propagation time
+  //based on the available bandwidth, the packet propagation time
   transDelay = ((node->GetAveragePacketSizeOfDevice (dev) * 8) / availableBW ) * 1000; // in Milliseconds
 }
 
